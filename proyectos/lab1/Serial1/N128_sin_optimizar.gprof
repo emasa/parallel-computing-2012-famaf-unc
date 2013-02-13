@@ -1,0 +1,236 @@
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls  Ts/call  Ts/call  name    
+  8.66      2.37     2.37                             lin_solve (solver.c:39 @ 4014e0)
+  5.48      3.87     1.50                             lin_solve (solver.c:42 @ 401cd8)
+  4.90      5.22     1.34                             lin_solve (solver.c:42 @ 401be8)
+  4.82      6.54     1.32                             lin_solve (solver.c:42 @ 4014f2)
+  4.57      7.79     1.25                             lin_solve (solver.c:40 @ 4014e7)
+  4.13      8.92     1.13                             lin_solve (solver.c:42 @ 4017a0)
+  4.06     10.03     1.11                             lin_solve (solver.c:39 @ 401cbf)
+  3.64     11.03     1.00                             lin_solve (solver.c:37 @ 4014f6)
+  3.43     11.97     0.94                             lin_solve (solver.c:37 @ 401799)
+  3.42     12.91     0.94                             lin_solve (solver.c:37 @ 401be1)
+  3.34     13.82     0.92                             lin_solve (solver.c:37 @ 4017a4)
+  3.27     14.72     0.90                             lin_solve (solver.c:38 @ 401795)
+  2.89     15.51     0.79                             lin_solve (solver.c:38 @ 401ccd)
+  2.70     16.25     0.74                             lin_solve (solver.c:39 @ 401787)
+  2.70     16.99     0.74                             lin_solve (solver.c:41 @ 40178d)
+  2.41     17.65     0.66                             lin_solve (solver.c:40 @ 401cc7)
+  2.34     18.29     0.64                             lin_solve (solver.c:38 @ 401bdd)
+  2.34     18.93     0.64                             lin_solve (solver.c:37 @ 401cd1)
+  2.17     19.53     0.60                             lin_solve (solver.c:39 @ 401bcf)
+  2.17     20.12     0.60                             lin_solve (solver.c:41 @ 401bd5)
+  1.92     20.65     0.53                             lin_solve (solver.c:37 @ 4014ec)
+  1.46     21.05     0.40                             project (solver.c:90 @ 4014ac)
+  1.32     21.41     0.36                             lin_solve (solver.c:40 @ 40178f)
+  1.15     21.73     0.32                             lin_solve (solver.c:40 @ 401bd7)
+  1.02     22.01     0.28                             diffuse (solver.c:123 @ 401c8c)
+  1.02     22.29     0.28                             lin_solve (solver.c:38 @ 401778)
+  1.02     22.57     0.28                             lin_solve (solver.c:37 @ 401bec)
+  0.80     22.79     0.22                             lin_solve (solver.c:37 @ 4014c6)
+  0.80     23.01     0.22                             lin_solve (solver.c:39 @ 4014ce)
+  0.73     23.21     0.20                             lin_solve (solver.c:36 @ 4014fb)
+  0.69     23.40     0.19                             lin_solve (solver.c:40 @ 4014d6)
+  0.69     23.59     0.19                             lin_solve (solver.c:90 @ 4014da)
+  0.69     23.78     0.19                             lin_solve (solver.c:40 @ 401bc6)
+  0.69     23.97     0.19                             lin_solve (solver.c:123 @ 401bc9)
+  0.62     24.14     0.17                             lin_solve (solver.c:37 @ 401ca5)
+  0.49     24.27     0.14                             dens_step (solver.c:114 @ 401754)
+  0.49     24.41     0.14                             lin_solve (solver.c:38 @ 401760)
+  0.49     24.54     0.14                             lin_solve (solver.c:38 @ 401cb0)
+  0.49     24.68     0.14                             lin_solve (solver.c:40 @ 401cb6)
+  0.40     24.79     0.11                             lin_solve (solver.c:40 @ 40177e)
+  0.40     24.90     0.11                             lin_solve (solver.c:114 @ 401781)
+  0.38     25.00     0.11                             lin_solve (solver.c:37 @ 401bb5)
+  0.38     25.11     0.11                             lin_solve (solver.c:39 @ 401bbd)
+  0.37     25.21     0.10                             project (solver.c:107 @ 4015ad)
+  0.29     25.29     0.08                             lin_solve (solver.c:37 @ 401cdc)
+  0.29     25.37     0.08                             lin_solve (solver.c:36 @ 401ce2)
+  0.27     25.44     0.08                             lin_solve (solver.c:37 @ 40176d)
+  0.27     25.52     0.08                             lin_solve (solver.c:39 @ 401775)
+  0.26     25.59     0.07                             advect (solver.c:67 @ 401fd0)
+  0.26     25.66     0.07                             project (solver.c:94 @ 401443)
+  0.22     25.72     0.06                             advect (solver.c:83 @ 4018c0)
+  0.22     25.78     0.06                             advect (solver.c:84 @ 4018dc)
+  0.22     25.84     0.06                             advect (solver.c:83 @ 4018ea)
+  0.22     25.90     0.06                             project (solver.c:107 @ 401583)
+  0.20     25.96     0.06                             advect (solver.c:83 @ 402081)
+  0.18     26.01     0.05                             advect (solver.c:83 @ 40204c)
+  0.16     26.05     0.05                             advect (solver.c:83 @ 401e85)
+  0.16     26.10     0.05                             project (solver.c:95 @ 40143f)
+  0.15     26.14     0.04                             advect (solver.c:83 @ 4018f3)
+  0.15     26.18     0.04                             advect (solver.c:74 @ 401e05)
+  0.15     26.22     0.04                             advect (solver.c:62 @ 402046)
+  0.15     26.26     0.04                             advect (solver.c:83 @ 402078)
+  0.15     26.30     0.04                             project (solver.c:94 @ 401411)
+  0.13     26.33     0.04                             react (headless.c:105 @ 400d00)
+  0.13     26.37     0.04                             advect (solver.c:83 @ 401e4f)
+  0.13     26.40     0.04                             project (solver.c:95 @ 401434)
+  0.13     26.44     0.04                             project (solver.c:106 @ 401586)
+  0.11     26.47     0.03                             advect (solver.c:67 @ 401840)
+  0.11     26.50     0.03                             diffuse (solver.c:14 @ 4016a5)
+  0.11     26.53     0.03                             advect (solver.c:84 @ 4018ef)
+  0.11     26.56     0.03                             advect (solver.c:67 @ 401dd0)
+  0.11     26.59     0.03                             advect (solver.c:83 @ 401e7c)
+  0.11     26.62     0.03                             lin_solve (solver.c:35 @ 401495)
+  0.11     26.65     0.03                             lin_solve (solver.c:38 @ 401ba8)
+  0.11     26.68     0.03                             project (solver.c:106 @ 401571)
+  0.11     26.71     0.03                             react (headless.c:96 @ 400cb0)
+  0.11     26.74     0.03                             react (headless.c:99 @ 400cc4)
+  0.11     26.77     0.03                             vel_step (solver.c:123 @ 401b9c)
+  0.07     26.79     0.02                             add_source (solver.c:14 @ 401aea)
+  0.07     26.81     0.02                             advect (solver.c:63 @ 401916)
+  0.07     26.83     0.02                             advect (solver.c:72 @ 401dfc)
+  0.07     26.85     0.02                             advect (solver.c:64 @ 401eb3)
+  0.07     26.87     0.02                             advect (solver.c:74 @ 402005)
+  0.07     26.89     0.02                             advect (solver.c:83 @ 402035)
+  0.07     26.91     0.02                             advect (solver.c:63 @ 4020a4)
+  0.07     26.93     0.02                             project (solver.c:90 @ 4013f9)
+  0.07     26.95     0.02                             project (solver.c:94 @ 40142e)
+  0.07     26.97     0.02                             project (solver.c:90 @ 401550)
+  0.07     26.99     0.02                             project (solver.c:107 @ 4015a0)
+  0.07     27.01     0.02                             react (headless.c:95 @ 400ccc)
+  0.07     27.03     0.02                             react (headless.c:95 @ 400cd4)
+  0.05     27.04     0.02                             advect (solver.c:84 @ 4018b1)
+  0.05     27.06     0.02                             project (solver.c:90 @ 40159c)
+  0.05     27.07     0.02                             react (headless.c:96 @ 400cd0)
+  0.05     27.09     0.02                             set_bnd (solver.c:21 @ 401060)
+  0.05     27.10     0.02                             set_bnd (solver.c:22 @ 4011a7)
+  0.05     27.12     0.02                             advect (solver.c:63 @ 401ea7)
+  0.05     27.13     0.02                             advect (solver.c:64 @ 401eab)
+  0.04     27.14     0.01                             advect (solver.c:114 @ 401830)
+  0.04     27.15     0.01                             advect (solver.c:74 @ 401875)
+  0.04     27.16     0.01                             advect (solver.c:83 @ 4018b4)
+  0.04     27.17     0.01                             advect (solver.c:83 @ 4018ca)
+  0.04     27.18     0.01                             advect (solver.c:83 @ 4018d8)
+  0.04     27.19     0.01                             advect (solver.c:84 @ 4018e6)
+  0.04     27.20     0.01                             advect (solver.c:64 @ 401922)
+  0.04     27.21     0.01                             advect (solver.c:83 @ 401e38)
+  0.04     27.22     0.01                             advect (solver.c:84 @ 401e78)
+  0.04     27.23     0.01                             advect (solver.c:72 @ 401ffc)
+  0.04     27.24     0.01                             advect (solver.c:84 @ 40207d)
+  0.04     27.25     0.01                             advect (solver.c:64 @ 4020b0)
+  0.04     27.26     0.01                             lin_solve (solver.c:123 @ 401dbf)
+  0.04     27.27     0.01                             project (solver.c:94 @ 40143b)
+  0.04     27.28     0.01                             react (headless.c:104 @ 400d12)
+  0.04     27.29     0.01                             set_bnd (solver.c:20 @ 401039)
+  0.04     27.30     0.01                             set_bnd (solver.c:23 @ 401089)
+  0.04     27.31     0.01                             set_bnd (solver.c:22 @ 40119b)
+  0.02     27.32     0.01                             advect (solver.c:83 @ 4018a9)
+  0.02     27.32     0.01                             advect (solver.c:63 @ 40190b)
+  0.02     27.33     0.01                             advect (solver.c:64 @ 401910)
+  0.02     27.33     0.01                             advect (solver.c:62 @ 401e49)
+  0.02     27.34     0.01                             advect (solver.c:62 @ 401e5f)
+  0.02     27.34     0.01                             advect (solver.c:84 @ 401e62)
+  0.02     27.35     0.01                             advect (solver.c:62 @ 401e8e)
+  0.02     27.35     0.01                             advect (solver.c:63 @ 401e94)
+  0.02     27.36     0.01                             advect (solver.c:64 @ 401e9a)
+  0.02     27.36     0.01                             advect (solver.c:62 @ 40205b)
+  0.02     27.37     0.01                             advect (solver.c:84 @ 40205e)
+  0.02     27.37     0.01                             advect (solver.c:62 @ 40208b)
+  0.02     27.38     0.01                             project (solver.c:95 @ 40141f)
+  0.02     27.38     0.01                             project (solver.c:93 @ 401422)
+  0.02     27.39     0.01                             react (headless.c:95 @ 400ca3)
+  0.02     27.39     0.01                             react (headless.c:104 @ 400ceb)
+  0.02     27.40     0.01                             set_bnd (solver.c:22 @ 401073)
+  0.02     27.40     0.01                             set_bnd (solver.c:24 @ 40109c)
+  0.02     27.41     0.01                             set_bnd (solver.c:20 @ 4010aa)
+  0.02     27.41     0.01                             set_bnd (solver.c:21 @ 401190)
+  0.02     27.42     0.01                             set_bnd (solver.c:21 @ 40119e)
+  0.02     27.42     0.01                             set_bnd (solver.c:23 @ 4011bb)
+  0.02     27.43     0.01                             set_bnd (solver.c:21 @ 4012c6)
+  0.02     27.43     0.01                             set_bnd (solver.c:22 @ 4012cf)
+  0.00     27.43     0.00   241692     0.00     0.00  wtime (timing.c:10 @ 400ff0)
+  0.00     27.43     0.00     4096     0.00     0.00  project (solver.c:91 @ 4013b0)
+  0.00     27.43     0.00     2048     0.00     0.00  dens_step (solver.c:115 @ 401620)
+  0.00     27.43     0.00     2048     0.00     0.00  vel_step (solver.c:124 @ 4019d0)
+
+			Call graph
+
+
+granularity: each sample hit covers 2 byte(s) for 0.04% of 27.43 seconds
+
+index % time    self  children    called     name
+                0.00    0.00      28/241692      one_step (headless.c:141 @ 400edf) [397]
+                0.00    0.00    2048/241692      main (headless.c:62 @ 400c56) [383]
+                0.00    0.00    2048/241692      one_step (headless.c:136 @ 400e4e) [393]
+                0.00    0.00    2048/241692      one_step (headless.c:138 @ 400e92) [395]
+                0.00    0.00    2048/241692      vel_step (solver.c:131 @ 401d5b) [519]
+                0.00    0.00    2048/241692      advect (solver.c:87 @ 401f57) [223]
+                0.00    0.00    2048/241692      advect (solver.c:87 @ 402136) [246]
+                0.00    0.00    4096/241692      one_step (headless.c:130 @ 400d9e) [389]
+                0.00    0.00    4096/241692      one_step (headless.c:133 @ 400de1) [391]
+                0.00    0.00    4096/241692      one_step (headless.c:137 @ 400e5b) [394]
+                0.00    0.00    4096/241692      project (solver.c:99 @ 40145b) [417]
+                0.00    0.00    4096/241692      project (solver.c:100 @ 40146a) [418]
+                0.00    0.00    4096/241692      project (solver.c:111 @ 4015e0) [427]
+                0.00    0.00   40960/241692      lin_solve (solver.c:45 @ 4017b4) [324]
+                0.00    0.00   40960/241692      lin_solve (solver.c:45 @ 401bfd) [336]
+                0.00    0.00   40960/241692      lin_solve (solver.c:45 @ 401cec) [351]
+                0.00    0.00   81920/241692      lin_solve (solver.c:45 @ 401505) [310]
+[141]    0.0    0.00    0.00  241692         wtime (timing.c:10 @ 400ff0) [141]
+-----------------------------------------------
+                0.00    0.00    2048/4096        one_step (headless.c:133 @ 400de1) [391]
+                0.00    0.00    2048/4096        vel_step (solver.c:131 @ 401d5b) [519]
+[142]    0.0    0.00    0.00    4096         project (solver.c:91 @ 4013b0) [142]
+-----------------------------------------------
+                0.00    0.00    2048/2048        one_step (headless.c:137 @ 400e5b) [394]
+[143]    0.0    0.00    0.00    2048         dens_step (solver.c:115 @ 401620) [143]
+-----------------------------------------------
+                0.00    0.00    2048/2048        one_step (headless.c:133 @ 400de1) [391]
+[144]    0.0    0.00    0.00    2048         vel_step (solver.c:124 @ 4019d0) [144]
+-----------------------------------------------
+
+Index by function name
+
+  [79] add_source (solver.c:14 @ 401aea) [85] advect (solver.c:63 @ 4020a4) [18] lin_solve (solver.c:37 @ 401cd1)
+  [99] advect (solver.c:114 @ 401830) [110] advect (solver.c:64 @ 4020b0) [2] lin_solve (solver.c:42 @ 401cd8)
+  [68] advect (solver.c:67 @ 401840) [143] dens_step (solver.c:115 @ 401620) [45] lin_solve (solver.c:37 @ 401cdc)
+ [100] advect (solver.c:74 @ 401875) [36] dens_step (solver.c:114 @ 401754) [46] lin_solve (solver.c:36 @ 401ce2)
+ [117] advect (solver.c:83 @ 4018a9) [69] diffuse (solver.c:14 @ 4016a5) [111] lin_solve (solver.c:123 @ 401dbf)
+  [92] advect (solver.c:84 @ 4018b1) [25] diffuse (solver.c:123 @ 401c8c) [142] project (solver.c:91 @ 4013b0)
+ [101] advect (solver.c:83 @ 4018b4) [73] lin_solve (solver.c:35 @ 401495) [86] project (solver.c:90 @ 4013f9)
+  [51] advect (solver.c:83 @ 4018c0) [28] lin_solve (solver.c:37 @ 4014c6) [63] project (solver.c:94 @ 401411)
+ [102] advect (solver.c:83 @ 4018ca) [29] lin_solve (solver.c:39 @ 4014ce) [129] project (solver.c:95 @ 40141f)
+ [103] advect (solver.c:83 @ 4018d8) [31] lin_solve (solver.c:40 @ 4014d6) [130] project (solver.c:93 @ 401422)
+  [52] advect (solver.c:84 @ 4018dc) [32] lin_solve (solver.c:90 @ 4014da) [87] project (solver.c:94 @ 40142e)
+ [104] advect (solver.c:84 @ 4018e6) [1] lin_solve (solver.c:39 @ 4014e0) [66] project (solver.c:95 @ 401434)
+  [53] advect (solver.c:83 @ 4018ea) [5] lin_solve (solver.c:40 @ 4014e7) [112] project (solver.c:94 @ 40143b)
+  [70] advect (solver.c:84 @ 4018ef) [21] lin_solve (solver.c:37 @ 4014ec) [58] project (solver.c:95 @ 40143f)
+  [59] advect (solver.c:83 @ 4018f3) [4] lin_solve (solver.c:42 @ 4014f2) [50] project (solver.c:94 @ 401443)
+ [118] advect (solver.c:63 @ 40190b) [8] lin_solve (solver.c:37 @ 4014f6) [22] project (solver.c:90 @ 4014ac)
+ [119] advect (solver.c:64 @ 401910) [30] lin_solve (solver.c:36 @ 4014fb) [88] project (solver.c:90 @ 401550)
+  [80] advect (solver.c:63 @ 401916) [37] lin_solve (solver.c:38 @ 401760) [75] project (solver.c:106 @ 401571)
+ [105] advect (solver.c:64 @ 401922) [47] lin_solve (solver.c:37 @ 40176d) [54] project (solver.c:107 @ 401583)
+  [71] advect (solver.c:67 @ 401dd0) [48] lin_solve (solver.c:39 @ 401775) [67] project (solver.c:106 @ 401586)
+  [81] advect (solver.c:72 @ 401dfc) [26] lin_solve (solver.c:38 @ 401778) [93] project (solver.c:90 @ 40159c)
+  [60] advect (solver.c:74 @ 401e05) [40] lin_solve (solver.c:40 @ 40177e) [89] project (solver.c:107 @ 4015a0)
+ [106] advect (solver.c:83 @ 401e38) [41] lin_solve (solver.c:114 @ 401781) [44] project (solver.c:107 @ 4015ad)
+ [120] advect (solver.c:62 @ 401e49) [14] lin_solve (solver.c:39 @ 401787) [131] react (headless.c:95 @ 400ca3)
+  [65] advect (solver.c:83 @ 401e4f) [15] lin_solve (solver.c:41 @ 40178d) [76] react (headless.c:96 @ 400cb0)
+ [121] advect (solver.c:62 @ 401e5f) [23] lin_solve (solver.c:40 @ 40178f) [77] react (headless.c:99 @ 400cc4)
+ [122] advect (solver.c:84 @ 401e62) [12] lin_solve (solver.c:38 @ 401795) [90] react (headless.c:95 @ 400ccc)
+ [107] advect (solver.c:84 @ 401e78) [9] lin_solve (solver.c:37 @ 401799) [94] react (headless.c:96 @ 400cd0)
+  [72] advect (solver.c:83 @ 401e7c) [6] lin_solve (solver.c:42 @ 4017a0) [91] react (headless.c:95 @ 400cd4)
+  [57] advect (solver.c:83 @ 401e85) [11] lin_solve (solver.c:37 @ 4017a4) [132] react (headless.c:104 @ 400ceb)
+ [123] advect (solver.c:62 @ 401e8e) [74] lin_solve (solver.c:38 @ 401ba8) [64] react (headless.c:105 @ 400d00)
+ [124] advect (solver.c:63 @ 401e94) [42] lin_solve (solver.c:37 @ 401bb5) [113] react (headless.c:104 @ 400d12)
+ [125] advect (solver.c:64 @ 401e9a) [43] lin_solve (solver.c:39 @ 401bbd) [114] set_bnd (solver.c:20 @ 401039)
+  [97] advect (solver.c:63 @ 401ea7) [33] lin_solve (solver.c:40 @ 401bc6) [95] set_bnd (solver.c:21 @ 401060)
+  [98] advect (solver.c:64 @ 401eab) [34] lin_solve (solver.c:123 @ 401bc9) [133] set_bnd (solver.c:22 @ 401073)
+  [82] advect (solver.c:64 @ 401eb3) [19] lin_solve (solver.c:39 @ 401bcf) [115] set_bnd (solver.c:23 @ 401089)
+  [49] advect (solver.c:67 @ 401fd0) [20] lin_solve (solver.c:41 @ 401bd5) [134] set_bnd (solver.c:24 @ 40109c)
+ [108] advect (solver.c:72 @ 401ffc) [24] lin_solve (solver.c:40 @ 401bd7) [135] set_bnd (solver.c:20 @ 4010aa)
+  [83] advect (solver.c:74 @ 402005) [17] lin_solve (solver.c:38 @ 401bdd) [136] set_bnd (solver.c:21 @ 401190)
+  [84] advect (solver.c:83 @ 402035) [10] lin_solve (solver.c:37 @ 401be1) [116] set_bnd (solver.c:22 @ 40119b)
+  [61] advect (solver.c:62 @ 402046) [3] lin_solve (solver.c:42 @ 401be8) [137] set_bnd (solver.c:21 @ 40119e)
+  [56] advect (solver.c:83 @ 40204c) [27] lin_solve (solver.c:37 @ 401bec) [96] set_bnd (solver.c:22 @ 4011a7)
+ [126] advect (solver.c:62 @ 40205b) [35] lin_solve (solver.c:37 @ 401ca5) [138] set_bnd (solver.c:23 @ 4011bb)
+ [127] advect (solver.c:84 @ 40205e) [38] lin_solve (solver.c:38 @ 401cb0) [139] set_bnd (solver.c:21 @ 4012c6)
+  [62] advect (solver.c:83 @ 402078) [39] lin_solve (solver.c:40 @ 401cb6) [140] set_bnd (solver.c:22 @ 4012cf)
+ [109] advect (solver.c:84 @ 40207d) [7] lin_solve (solver.c:39 @ 401cbf) [144] vel_step (solver.c:124 @ 4019d0)
+  [55] advect (solver.c:83 @ 402081) [16] lin_solve (solver.c:40 @ 401cc7) [78] vel_step (solver.c:123 @ 401b9c)
+ [128] advect (solver.c:62 @ 40208b) [13] lin_solve (solver.c:38 @ 401ccd) [141] wtime (timing.c:10 @ 400ff0)

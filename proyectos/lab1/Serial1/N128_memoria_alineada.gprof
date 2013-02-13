@@ -1,0 +1,49 @@
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls  ns/call  ns/call  name    
+ 64.50     16.85    16.85                             vel_step
+ 34.36     25.82     8.97                             dens_step
+  1.04     26.09     0.27                             _fini
+  0.19     26.14     0.05   178176   281.06   281.06  wtime
+  0.04     26.15     0.01    47104   212.63   212.63  project
+  0.04     26.16     0.01                             __libc_csu_init
+
+			Call graph
+
+
+granularity: each sample hit covers 2 byte(s) for 0.04% of 26.16 seconds
+
+index % time    self  children    called     name
+                                                 <spontaneous>
+[1]     64.5   16.85    0.03                 vel_step [1]
+                0.02    0.00   81920/178176      wtime [4]
+                0.01    0.00   45056/47104       project [6]
+-----------------------------------------------
+                                                 <spontaneous>
+[2]     34.4    8.97    0.03                 dens_step [2]
+                0.03    0.00   94208/178176      wtime [4]
+-----------------------------------------------
+                                                 <spontaneous>
+[3]      1.0    0.27    0.00                 _fini [3]
+                0.00    0.00    2048/47104       project [6]
+-----------------------------------------------
+                0.00    0.00    2048/178176      __libc_csu_init [5]
+                0.02    0.00   81920/178176      vel_step [1]
+                0.03    0.00   94208/178176      dens_step [2]
+[4]      0.2    0.05    0.00  178176         wtime [4]
+-----------------------------------------------
+                                                 <spontaneous>
+[5]      0.0    0.01    0.00                 __libc_csu_init [5]
+                0.00    0.00    2048/178176      wtime [4]
+-----------------------------------------------
+                0.00    0.00    2048/47104       _fini [3]
+                0.01    0.00   45056/47104       vel_step [1]
+[6]      0.0    0.01    0.00   47104         project [6]
+-----------------------------------------------
+
+Index by function name
+
+   [5] __libc_csu_init         [2] dens_step               [1] vel_step
+   [3] _fini                   [6] project                 [4] wtime
