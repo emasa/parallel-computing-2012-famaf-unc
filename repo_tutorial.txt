@@ -1,0 +1,337 @@
+
++ Crear Cuenta
+Haganse una cuenta en bitbucket.org.
+El repo lo cree yo, por lo tanto yo soy el owner, pero ustedes una vez que se hayan 
+creado cuenta en bitbucket.org, les voy a poder dar permiso de admin al repositorio.
+Con esto pueden leer, escribir, borrar bla bla, lo unico que no pueden hacer
+es borrar el repositorio. El resto pueden hacer todo.
+
++ Datos utiles para tener a mano:
+El nombre del repo es cp2012.
+Su username y password.
+La mayoria de la interacion con git se hace poniendo primero la palabra git y despues
+el comando. 
+Ejemplo: 
+$git add archivo.c, 
+$git commit archivo.c 
+$git push origin nombre_rama
+$git pull origin nombre_rama 
+(todo estos los vemos mas adelante)
+
++ Bajar el repositorio 
+Para bajarse el repo por primera vez, hay que hacer un "clone"
+Pero primero, ¿Que es un clone y para que sirve? 
+La idea de git, es que existen dos versiones del 
+repositorio, una remota y una local.
+La remota es la que esta en el servidor, la que esta online.
+La local es la que se encuentra en el disco nuestro, es la version local con la que 
+trabajamos. La idea de esto es que nosotros tenemos un clon exacto del repositorio en 
+nuestro disco, es decir, podemos ver TODO lo que sucedio con el repositorio en el pasado 
+hasta EL PUNTO donde hicimos el clon. 
+¿Que quiere decir esto?, podemos ver los commits, las ramas creadas, borradas, los archivos agregados, los merge (las fusiones) de ramas, durante toda la vida del
+repositorio.
+Bueno, pero todavia no vimos para que poronga sirve la version remota.
+Lo que sucede, es que nosotros vamos a trabajar con nuestro repositorio local, hacemos commits y jugamos con el repositorio, pero todo muy bonito pero estos cambios no los pueden ver las otras personas con las que estemos desarrollando. Entonces eventualmente tenemos que subir estos cambios al repositorio remoto. Es ahi, cuando nosotros pasamos nuestros cambios locales al remoto. Logicamente, antes de pasar nuestros cambios tenemos que bajar los nuevos cambios del repositorio antes de poder meter los cambios locales mios. Si esto no se entendio viene un ejemplo.
+Ejemplo:
+Supongamos que Dario baja el repositorio, digamos que el momento en que baja el repositorio se encuentra en estado A, para facilidad, repoA.
+Supongamos que viene Geray baja el repositorio en el mismo estado que Dario, y obtiene la misma copia, repoA. Entonces:
+Dario: repoA
+Gera: repoA
+Repo remoto: repoA
+
+Supongamos que Dario hace cambios y lleva el repo local de repoA a repoA'
+y Gera hace lo mismo con su copia, lleva repoA a repoA''.
+Es analogo el orden de lo que sucede a continuacion:
+Supongamos que Gera sube sus cambios al repo remoto,
+pregunta si hay modificaciones, como su version es la misma que la online
+entonces lo sube. Entonces queda:
+Dario: repoA
+Gera: repoA''
+Repo remoto: repoA''
+
+Ahora Dario quiere llevar sus cambios al repo remoto, pero 
+cuando pregunta por si hay cambios nuevos, git le dice que el repo remoto
+es distinto que el suyo.
+Que tiene que hacer Dario? 
+bajarse los cambios del servidor remoto a su version local,
+(los cambios son los que introducio Gera), guardarlos localmente,
+y despues, ya con los cambios de Gera + suyos, metidos en su repo local
+recien los sube al remo remoto, es decir:
+Dario: repoA''' (son los cambios de su repositorio + los de Gera)
+Gera: repoA''
+Repo remoto: repoA''
+
+Y recien ahora puede subir sus cambios al repositorio remoto
+para quedar
+Dario: repoA'''
+Gera: repoA''
+Repo remoto: repoA'''
+
+
+
+Ahora si vamos a crear el clon
+1) Creen una carpeta donde van a alojar el repositorio(en sus pcs).
+Noten que esta carpeta la van a usar después siempre para el repo.
+2) El comando en cuestion para crear el clone, una vez dentro de la carpeta desde consola
+$ git clone https://username@bitbucket.org/username/cp2012.git 
+
+
++ Commitear archivos.
+Git trabaja con archivos en un modo que le da bola 
+solo a los archivos que se encuentre en el set de trabajo. 
+Es decir, cada archivo que yo trabajar PRIMERO, antes de modificarlo, 
+le tengo que avisar a git que le preste atencion (es decir, que lo trackee) 
+
+Git tiene un comando con el cual nos va avisando verificando todo lo que 
+hacemos, las cosas nuevas, en definitiva un comando que tira informacion 
+sobre el repositorio. 
+El comando es $git status, nos dice si hay archivos nuevos, modificados, 
+sin modificar, archivos nuevos fuera del set de trabajos, etc.
+Es mas, el comando este, nos tira sugerencias de las cosas que podemos 
+hacer (si lo corren se van a dar cuenta de que hablo).
+
+Si creamos un archivo por ejemplo, $touch m.a
+y despues tiramos un $git status
+vamos a ver que como no lo agregamos a que "git le preste atencion"
+nos va figurar como "untracked".
+# Untracked files:
+#   (use "git add <file>..." to include in what will be committed)
+#
+#	m.a
+
+Para que git le preste atencion tenemos que agregarlo a los archivos 
+trackeados. El comando es $git add m.a  (inclusive esta el hint ahi)
+Una vez que lo agregamos, si corremos $git status deberia desaparecer
+de untracked. Y ahora nos aparece como:
+# Changes to be committed:
+#   (use "git rm --cached <file>..." to unstage)
+#
+#	new file:   m.a
+#
+
+Eso quiere decir que el archivo esta siendo trackeado, toda modificacion que le hagamos al archivo, git se va a dar cuenta que lo modificamos. Si no
+lo hubieramos agregado con add, podriamos tocar el archivo y git no le daria
+bola a los cambios, solo nos informaria con git status que el archivo no 
+esta siendo trackeado.
+
+Hasta ahora no hicimos nada util.
+Supongamos que ahora lo modificamos, $git status nos dice que hay un m.a para commitear pero un m.a modificado sin estar "staged", eso pasa porque hay dos versiones del mismo archivo que estan siendo contraladas.
+Para unificar con la version mas nueva, $git add m.a
+Y vuelve a aparecer como:
+Changes to be committed:
+#   (use "git rm --cached <file>..." to unstage)
+#
+#	new file:   m.a
+#
+
+El proceso basico para subir un archivo al repositorio es
+add->commit-> push
+
+Bueno, entonces ahora tengo que commitear el cambio.
+Capaz que adivinen pero para hacer esto lo anoto igual.
+$git commit m.a
+Apenas hagan eso, les va a abrir el editor por defecto de consola,
+en mi caso era nano y lo cambie por vim (para cambiar esto hay que 
+modificar la configuracion de git, de alguna forma que no me acuerdo
+porque era una boludez y ya lo olvide).
+La primera linea, es donde tenemos que agregar la descripcion del commit.
+Onda, Fixed bug 14, que rompia tal huevada.
+Debajo de esa explicacion, esta el detalle de lo que vamos a commitear,
+cosa de que no commiteamos por accidente algo que realmente no queremos
+commitear. Una vez que terminamos con eso, lo guardamos y salimos del editor. Si no le ponemos comentario, git ignora el commit y seguimos en el estado
+anterior al commit.
+
+De nuevo, para verificar que commiteamos bien, $git status
+
+nothing to commit (working directory clean)
+
+--
+Esto lo vemos porque es configuracion de git y no se bien
+Ojo, todavia no subimos nuestro cambios al servidor remoto, estan en nuestro
+repositorio pero no en el remoto. (aca la puedo cagar un poco porque nunca
+entendi del todo como configurar esta parte pero un poquito de google
+y la solucionamos sin pensar, si es que no se hizo automagicamente).
+--
+Que es lo que pasa en este punto, git debe tener alguna referencia de que es lo local y que es lo remoto (en realidad la palabra es donde).
+Por convencion, git nombra al repositorio local como "origin"
+Entonces siguiendo el (add->commit->push), corremos algo que no van a 
+adivinar:
+
+$git push origin nombre_rama
+
+Como nosotros hasta ahora no creamos ninguna rama, siempre estuvimos en la
+rama master, la rama master es la rama principial del repositorio.
+Toda rama que creemos siempre sale de master. (cuando termine todo, haganme
+ acordar que explique como se manejan las convenciones de ramas, 
+que es master, develop, feature1, hotfix)
+
+Un oyente oportuno puede preguntarse, pero con ese comando no digo, que
+pusheando al servidor remoto. Como funcion?
+Sucede que yo tengo una bolsa de commits, yo los commits los meto en la
+bolsa, eso queda en casa, y recien se sube la bolsa de commits, todos de 
+una con el push. Si hago 8 commits, los commits van a ser locales, hasta
+que yo los pushee.
+
+Eso termina la parte basica de subir archivos.
+
+
++ Bajar cambios del repositorio.
+Como antes dijimos, para poder subir mis cambios, siempre antes
+tengo que bajarme los cambios nuevos.
+Si se me llega olvidar, git antes de dejarme subir mis cambios, me va a 
+decir "flaco, paraaaa de tratar de pushear, existen cambios que vos no tene"
+Este paso justamente es el que tienen que hacer siempre antes de hacer el push
+
+Entonces, el add->commit->push no es exactamente asi sino que va a ser
+add->commit-> (BAJAR CAMBIOS)-> push
+Como bajo los cambios?
+
+$git pull origin nombre_rama
+$git fetch (aplica los cambios a mi repositorio)
+
+(aca es donde los bardeo)
+Si le llegan a pifiar en el nombre de la rama, van a generar una inconsis
+tencia enorme porque van a bajar los cambios de una rama equivocada adentro
+de otra rama. Se rompee todooo.
+Fijense siempre de estar en la rama correcta.
+De momento hay una sola rama, que es master.
+Lo ultimo que se explica es como manejar se con ramas.
+
+Para usar el dibujito de antes.El como subir archivos
+siempre va a ser como:
+add-> commit-> pull -> push.
+
+Pero todo no es color de rosas.
+Tenemos un escenario posible donde, el pull que hagamos haga cagada
+(antes de poder hacer el fetch).
+Por ejemplo, Dario labura con m.a, labura, labura. LLega el punto
+que dice, listo, lo subo, anda como piña. Pero por ahi Gera metio mano.
+Entonces al momento de bajarse los cambios nuevos, (el paso pull de arriba),
+le va a bajar los cambios pero puede que pase que se genere algo raro.
+Que es este raro, bueno, que git no sepa como mezclar los cambios que 
+hizo gera, con los cambios que hizo dario.
+Entonces tratando de mezclar la version de Dario y la version de Gera, git
+la cago y dejo el archivo en una mezcla rara (no es tan rara, git deja 
+hints de lo que no supo que poronga hacer).
+(ejemplo de este caso sería, inicialmente habia una funcion f1, 
+vino dario y le agrego mas cosas adentro; pero mientras dario metia mano, 
+dijo, "ma bah, esta funcion esta al pedo, no sirve", y la borro y la subio 
+al repo remoto. Dario hizo el pull y git no sabe que hacer, "le borro la funcion? pero si él le agrego cosas, pero la habian borrado! borro o no borro?)
+Es acá donde hay que meter mano y corregir esta incosistencia que git no 
+supo resolver.
+Entra $git status salvador y nos fijamos que archivo es el que se rompio.
+Lo modificamos, lo commiteamos y ahi si podemos hacer el push al repo remoto
+
+Listo esto.
+
+Ahora lo que Dario siempre quiso saber, Ramas.
+Aca me macheteo porque no me acuerdo de memoria.
+
++ Explicacion de que es una rama
+Las ramas, son desarrollos paralelos de un proyecto, ya sea para
+agregar cosas, para corregir, para probar o solo porque se canta.
+Se usan generalmente para agregar features.
+Ejemplo: se tiene una rama master (siempre por defecto) y se crean ramas
+feature1, feature2. Para desarrollar capacidades nuevas del proyecto.
+Entonces antes tenía:
+
+master: --*--*--*- (los asteriscos son commits)
+
+Creo una rama "feature1" despues del ultimo push/commit
+Mi proyecto queda como
+
+master:   --*--*--*------
+feature1:          \-----
+
+Donde feature1 tiene los commits logicamente
+
+Supongamos que feature1 le hacen commits y a master tambien.
+master:   --*--*--*--*---*
+feature1           \--*--*
+
+Yo aca puedo hacer 2 cosas (estando feature1)
+1) bajarme los cambios de master
+2) meter mis cambios a master (merge)
+
+Generalmente, se hace 1) con mucha frecuencia, porque esos commits
+puede ser que los hayan hecho otros desarrolladores y son imporantantes.
+Si estan en master es porque son megaarchiimportantes.
+Entonces para 1) voy siempre debes en cuando bajandome sus cambios
+Pero 2) generalmente significaria que termine de desarrollar mi feature1
+y esta listo para que los otros desarrolladores puedan usar mi feature1.
+1) generalmente sirve para ir bajandome las actualizaciones
+2) para poner mi feature mergeandolo con master (esto implica muchas cosas
+merge, dejar abierto mi branch, cerrarlo, borrarlo etc)
+
+Ojala tenga un pizarron porque me voy a hartar, sino una hoja de papel.
+
+
++ Como cambio de branch?
+$git checkout nombre_rama
+Ejemplo: estoy en master, y me quiero ir a feature1
+$git checkout feature1
+
++ Como creo un branch nuevo?
+1) Fijarme donde estoy parado, porque si estoy adentro de un branch, la rama
+sale desde el branch que estoy parado (explicar mejor ovivo)
+2)$git branch nombre_rama
+3) verifico que se creo con....$git branch
+
++ Como borro un branch?
+Es medio heavy esto. Porque? porque esto implica borrar la rama del repo
+local y tambien hay que borrarla del remoto. Probablemente se pueda
+hacer con un solo comando, pero la forma simple de hacerlo es con dos.
+
+Delete local branch "serverfix":
+$git branch -d serverfix
+
+Delete remote branch "serverfix":
+$git push origin :serverfix
+ 
+
++ Situaciones misteriosas
+Gera borra una rama, como poronga bajo ese cambio? 
+(el de actualizar las ramas)
+
+Sometimes, you delete a branch and if you run 
+
+git branch -a
+it still listed under /remote.
+One way to sync your local branches is to execute the following:
+
+$git fetch -p
+After fetching, will remove any remote-tracking branches which no longer exist on the remote.
+--
+
+Lo que no explique era 1) y 2) de antes.
+1) Situacion, estoy en feature1 y quiero bajarme los cambios de master.
+$git checkout feature1 (me paro en el branch)
+$git pull origin master (esto baja los cambios de master!)
+$git commit (commiteo los cambios)
+$git push origin feature1
+
+2) Situacion, quiero meter mis cambios de la rama feature1 en la rama master
+$git checkout master
+$git merge --no-ff feature1 (esto le dice trae todos los cambios de feature1 a master, porque estaba parado en master)
+
+Si no se paran bien, la van a cagaaaaar. Yo se lo que les digo....
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
