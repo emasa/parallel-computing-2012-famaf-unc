@@ -1,0 +1,4 @@
+demo.o: demo.c solver.h timing.h
+headless.o: headless.c timing.h
+solver.o: solver.c solver.h
+timing.o: timing.c timing.h

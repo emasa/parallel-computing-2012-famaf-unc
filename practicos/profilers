@@ -1,0 +1,2 @@
+
+perf stat -e dTLB-load-misses,dTLB-loads,cache-misses,cache-references,instructions,cycles ./a.out
