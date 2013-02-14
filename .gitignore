@@ -1,6 +1,9 @@
-# Compiled source #
+# Compiled source, linking files, debugging files #
 ###################
 *.o
+*.s
+*.out
+.depend
 
 # Deleted files #
 ###################
@@ -18,3 +21,5 @@
 *.rar
 *.tar
 *.zip
+
+

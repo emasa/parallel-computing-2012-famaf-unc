@@ -1,5 +1,7 @@
 #include <stddef.h>
 
+#include <nmmintrin.h> // soporte para sse4.2
+
 #include "solver.h"
 
 #define IX(i,j) ((i)+(n+2)*(j))
@@ -29,18 +31,48 @@ static void set_bnd(unsigned int n, boundary b, float * x)
     x[IX(n + 1, n + 1)] = 0.5f * (x[IX(n, n + 1)] + x[IX(n + 1, n)]);
 }
 
-static void lin_solve(unsigned int n, boundary b, float * x, const float * x0, float a, float c)
-{
+static void lin_solve(unsigned int n, boundary b, float * __restrict__ x, const float * __restrict__ x0, float a, float c)
+{    
+    __m128 inv_c_s   = _mm_set1_ps(1. / c);  // (1/c, 1/c, 1/c, 1/c)
+    __m128 a_div_c_s = _mm_set1_ps(a / c);   // (a/c, a/c, a/c, a/c)
+    __m128 zeros     = _mm_setzero_ps();     // (0, 0, 0, 0)
+    
     for (unsigned int k = 0; k < 20; k++) {
         for (unsigned int i = 1; i <= n; i++) {
-            for (unsigned int j = 1; j <= n; j++) {
-                x[IX(i, j)] = (x0[IX(i, j)] + 
-                               a * (x[IX(i - 1, j)] +
-                                    x[IX(i + 1, j)] +
-                                    x[IX(i, j - 1)] +
-                                    x[IX(i, j + 1)])
-                               ) / c;
-            }
+            for (unsigned int j = 1; j <= n; j += 2) {
+   /* original: x[IX(i, j)] = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] +
+                                                     x[IX(i, j - 1)] + x[IX(i, j + 1)]) ) / c; */             
+                // leo de la memoria (desalineada)
+                __m128 _x0 = _mm_loadu_ps((float*) &x0[IX(i + 0, j - 1)]);
+                __m128 r0  = _mm_loadu_ps((float*) &x[IX(i - 1, j - 1)]);
+                __m128 r1  = _mm_loadu_ps((float*) &x[IX(i + 0, j - 1)]);
+                __m128 r2  = _mm_loadu_ps((float*) &x[IX(i + 1, j - 1)]);
+
+                // add1 = ( _ , x[i-1][j] + x[i+1][j] , x[i-1][j+1] + x[i+1][j+1] , _ )
+                __m128 up_down_x2 = _mm_add_ps(r0, r2);
+                // ( x[i][j+1] , x[i][j+1] , x[i][j+2] , x[i][j+2] )
+                __m128 right_x2   = _mm_shuffle_ps(r1, r1, _MM_SHUFFLE(3, 3, 2, 2));
+                // add2 = ( _ , add1[1] + x[i][j+1] , add1[2] + x[i][j+2], _ )               
+                __m128 up_down_right_x2 = _mm_add_ps(up_down_x2, right_x2);
+                // ( x[i][j-1] , x[i][j-1] , 0, 0)
+                __m128 left_1 = _mm_shuffle_ps(r1, zeros, _MM_SHUFFLE(0, 0, 0, 0));
+                // add3 = ( _ , add[1] + x[i][j-1], add[2], _)                
+                __m128 up_down_right_x2_left_1 = _mm_add_ps(up_down_right_x2, left_1);
+                // (0, 0, add3[1], add3[1])
+                __m128 left_2 = _mm_shuffle_ps(zeros, up_down_right_x2_left_1, _MM_SHUFFLE(1, 1, 0, 0));
+                // add4 = ( _ , add3[1] , add3[1] + add3[2] , _ ) ;
+                __m128 up_down_right_x2_left_x2 = _mm_add_ps(left_2, up_down_right_x2_left_1);
+                // add4 * a / c               
+                __m128 x_mul_a_div_c = _mm_mul_ps(up_down_right_x2_left_x2, a_div_c_s);
+                // (_ , x0[i][j+1] / c , x0[i][j+1] / c , _) 
+                __m128 x0_div_c = _mm_mul_ps(_x0, inv_c_s);
+                // new = add4 * a / c + x0 / c
+                __m128 x_mul_a_plus_x0_div_c = _mm_add_ps(x_mul_a_div_c, x0_div_c);
+                // res = (x[i][j-1] , new[1] , new[2] , x[i][j+2] )
+                __m128 res = _mm_blend_ps(r1, x_mul_a_plus_x0_div_c, 6); //0110
+                // escribo en la memoria                
+                _mm_storeu_ps((float*) &x[IX(i + 0, j - 1)], res);
+            }            
         }
         set_bnd(n, b, x);
     }

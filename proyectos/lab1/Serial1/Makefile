@@ -5,7 +5,7 @@ CC=gcc
 CFLAGS=-O3 -march=native -msse4 -Wall -std=c99 -g -pg
 LDFLAGS=
 
-TARGETS=headless
+TARGETS=headless demo
 SOURCES=$(shell echo *.c)
 COMMON_OBJECTS=timing.o solver.o
 
