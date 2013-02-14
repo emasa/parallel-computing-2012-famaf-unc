@@ -56,7 +56,7 @@ static void lin_solve(unsigned int n, boundary b, float * __restrict__ x, const 
                 __m128 up_down_right_x2 = _mm_add_ps(up_down_x2, right_x2);
                 // ( x[i][j-1] , x[i][j-1] , 0, 0)
                 __m128 left_1 = _mm_shuffle_ps(r1, zeros, _MM_SHUFFLE(0, 0, 0, 0));
-                // add3 = ( _ , add[1] + x[i][j-1], add[2], _)                
+                // add3 = ( _ , add2[1] + x[i][j-1], add2[2], _)                
                 __m128 up_down_right_x2_left_1 = _mm_add_ps(up_down_right_x2, left_1);
                 // (0, 0, add3[1], add3[1])
                 __m128 left_2 = _mm_shuffle_ps(zeros, up_down_right_x2_left_1, _MM_SHUFFLE(1, 1, 0, 0));
