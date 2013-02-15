@@ -59,7 +59,7 @@ static void lin_solve(unsigned int n, boundary b, float * __restrict__ x, const 
                 // add3 = ( _ , add2[1] + x[i][j-1], add2[2], _)                
                 __m128 add3 = _mm_add_ps(add2, left_1);
                 // add3 * a / c               
-                __m128 add3_qmul_a_div_c = _mm_mul_ps(add3, a_div_c_s);
+                __m128 add3_mul_a_div_c = _mm_mul_ps(add3, a_div_c_s);
                 // x0_div_c = (_ , x0[i][j+1] / c , x0[i][j+1] / c , _) 
                 __m128 x0_div_c = _mm_mul_ps(_x0, inv_c_s);
                 // add4 = x0_div_c + add3_mul_a_div_c 
