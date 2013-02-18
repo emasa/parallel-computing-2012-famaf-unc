@@ -8,14 +8,14 @@
 #define SWAP(x0,x) {float * tmp=x0;x0=x;x=tmp;}
 
 #define SHIFT_LEFT(_mm_value) _mm_shuffle_ps((_mm_value), (_mm_value), _MM_SHUFFLE(0, 3, 2, 1))  
-#define SHIFT_RIGHT(_mm_value) _mm_shuffle_ps((_mm_value), (_mm_value), _MM_SHUFFLE(2, 1, 0, 3))
+#define SHIFT_RIGHT(_mm_value) _mm_shuffle_ps((_mm_value), (_mm_value), _MM_SHUFFLE(2, 1, 0, 3))  
 
 typedef enum { NEITHER = 0, HORIZONTAL = 1, VERTICAL = 2 } boundary;
 
 static void add_source(unsigned int n, float * x, const float * s, float dt)
 {
-    unsigned int size = (n + 2) * (n + 2);
-    for (unsigned int i = 0; i < size; i++) { //vectorizado automatico con -ffast-math 
+    unsigned int size = (n + 2) * (n + 2); //vectorizado automatico con ffast-math
+    for (unsigned int i = 0; i < size; i++) {
         x[i] += dt * s[i];
     }
 }
@@ -132,23 +132,73 @@ static void advect(unsigned int n, boundary b, float * d, const float * d0, cons
 }
 
 static void project(unsigned int n, float *u, float *v, float *p, float *div)
-{
-    for (unsigned int i = 1; i <= n; i++) {
+{   
+    __m128 inv_neg_2n = _mm_set1_ps(-1. / (2 * n));
+    
+    __m128 v_up, v_center, v_down;
+    for (unsigned int i = 1; i <= n; i += 2) {
+        v_up   = _mm_loadu_ps((float*) &v[IX(i-1, 0)]);
+        v_center   = _mm_loadu_ps((float*) &v[IX(i-1, 1)]);
         for (unsigned int j = 1; j <= n; j++) {
-            div[IX(i, j)] = -0.5f * (u[IX(i + 1, j)] - u[IX(i - 1, j)] +
+            /* div[IX(i, j)] = -0.5f * (u[IX(i + 1, j)] - u[IX(i - 1, j)] +
                                      v[IX(i, j + 1)] - v[IX(i, j - 1)]) / n;
-            p[IX(i, j)] = 0;
+            p[IX(i, j)] = 0; */
+            __m128 u_center = _mm_loadu_ps((float*) &u[IX(i-1, j)]);
+            __m128 u_sub = _mm_sub_ps(SHIFT_LEFT(u_center), SHIFT_RIGHT(u_center));            
+            
+            v_down = _mm_loadu_ps((float*) &v[IX(i-1, j+1)]);
+
+            __m128 v_sub = _mm_sub_ps(v_down, v_up);
+            __m128 add = _mm_add_ps(u_sub, v_sub);            
+            __m128 res = _mm_mul_ps(add, inv_neg_2n);
+            
+            //para no corromper div[IX(i-1, j)]
+            //se corrompe una posicion hacia adelante pero no importa
+            _mm_storeu_ps((float*) &div[IX(i, j)], SHIFT_LEFT(res));
+            
+            v_up = v_center; v_center = v_down;
         }
     }
+    //vectorizado automatico
+    unsigned int size = (n+2)*(n+2);
+    for (unsigned int i = 0; i < size; i++) p[i] = 0;  
+    
     set_bnd(n, 0, div);
     set_bnd(n, 0, p);
 
     lin_solve(n, 0, p, div, 1, 4);
 
-    for (unsigned int i = 1; i <= n; i++) {
+    __m128 n_div_2 = _mm_set1_ps(n / 2.);
+    
+    __m128 p_up, p_center, p_down;
+    for (unsigned int i = 1; i <= n; i += 2) {
+        p_up     = _mm_loadu_ps((float*) &p[IX(i-1, 0)]);
+        p_center = _mm_loadu_ps((float*) &p[IX(i-1, 1)]);
         for (unsigned int j = 1; j <= n; j++) {
-            u[IX(i, j)] -= 0.5f * n * (p[IX(i + 1, j)] - p[IX(i - 1, j)]);
-            v[IX(i, j)] -= 0.5f * n * (p[IX(i, j + 1)] - p[IX(i, j - 1)]);
+            //u[IX(i + 0, j)] -= 0.5f * n * (p[IX(i + 1, j)] - p[IX(i - 1, j)]);
+            //u[IX(i + 1, j)] -= 0.5f * n * (p[IX(i + 2, j)] - p[IX(i - 0, j)]);            
+            __m128 p_sub = _mm_sub_ps(SHIFT_LEFT(p_center), SHIFT_RIGHT(p_center));
+            __m128 p_sub_mul_n_div_2 = _mm_mul_ps(p_sub, n_div_2); 
+
+            __m128 u_center = _mm_loadu_ps((float*) &u[IX(i-1, j)]);
+            __m128 u_sub_p  = _mm_sub_ps(u_center, p_sub_mul_n_div_2);
+            
+            //__m128 u_res = _mm_blend_ps(u_center, u_sub_p, 6); //0110
+            __m128 u_res_aux = _mm_shuffle_ps(u_sub_p, u_center, _MM_SHUFFLE(3, 0, 1, 2));
+            __m128 u_res = _mm_shuffle_ps(u_res_aux, u_res_aux, _MM_SHUFFLE(3, 0, 1, 2));
+            
+            _mm_storeu_ps((float*) &u[IX(i-1, j)], u_res);    
+            
+            p_down = _mm_loadu_ps((float*) &p[IX(i-1, j+1)]);
+            if ((i - 1) % 4 == 0){
+                //v[IX(i + 0, j)] -= 0.5f * n * (p[IX(i + 0, j + 1)] - p[IX(i + 0, j - 1)]);
+                __m128 p_sub = _mm_sub_ps(p_down, p_up);                
+                __m128 p_sub_mul_n_div_2 = _mm_mul_ps(p_sub, n_div_2); 
+                __m128 v_center = _mm_loadu_ps((float*) &v[IX(i-1, j)]);
+                __m128 v_sub_p  = _mm_sub_ps(v_center, p_sub_mul_n_div_2);
+                _mm_storeu_ps((float*) &v[IX(i-1, j)], v_sub_p);             
+            }
+            p_up = p_center; p_center = p_down;
         }
     }
     set_bnd(n, 1, u);

@@ -2,7 +2,10 @@ CC=gcc
 #CC=clang
 #CC=icc
 
-CFLAGS=-O3 -Wall -march=native -std=c99
+# probando flags de vectorizacion automatica, loop unrolling automatico, ffast-math
+CFLAGS=-O3 -Wall -march=native -std=c99 -ftree-vectorizer-verbose=4 -fprefetch-loop-arrays -funroll-loops -fvect-cost-model -ffast-math
+#CFLAGS=-O3 -Wall -march=native -std=c99 -ftree-vectorizer-verbose=4 -fprefetch-loop-arrays -funroll-loops -fvect-cost-model
+#CFLAGS=-O3 -Wall -march=native -std=c99 -ffast-math
 LDFLAGS=
 
 TARGETS=headless.out demo.out

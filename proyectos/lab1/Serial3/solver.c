@@ -1,14 +1,15 @@
 #include <stddef.h>
-
+#include <assert.h>
 #include <x86intrin.h>  // soporte para intrisics
 
 #include "solver.h"
 
 #define IX(i,j) ((i)+(n+2)*(j))
 #define SWAP(x0,x) {float * tmp=x0;x0=x;x=tmp;}
+#define N_MAX_DUMMY (2 << 30)
 
 #define SHIFT_LEFT(_mm_value) _mm_shuffle_ps((_mm_value), (_mm_value), _MM_SHUFFLE(0, 3, 2, 1))  
-#define SHIFT_RIGHT(_mm_value) _mm_shuffle_ps((_mm_value), (_mm_value), _MM_SHUFFLE(2, 1, 0, 3))
+#define SHIFT_RIGHT(_mm_value) _mm_shuffle_ps((_mm_value), (_mm_value), _MM_SHUFFLE(2, 1, 0, 3))  
 
 typedef enum { NEITHER = 0, HORIZONTAL = 1, VERTICAL = 2 } boundary;
 
@@ -21,10 +22,15 @@ static void add_source(unsigned int n, float * x, const float * s, float dt)
 }
 
 static void set_bnd(unsigned int n, boundary b, float * x)
-{
-    for (unsigned int i = 1; i <= n; i++) {
+{   
+    for (unsigned int i = 1; i <= n; i += 2) { //loop unrolling manual
         x[IX(0, i)]     = b == 1 ? -x[IX(1, i)] : x[IX(1, i)];
+        x[IX(0, i+1)]   = b == 1 ? -x[IX(1, i+1)] : x[IX(1, i+1)];
+
         x[IX(n + 1, i)] = b == 1 ? -x[IX(n, i)] : x[IX(n, i)];
+        x[IX(n + 1, i+1)] = b == 1 ? -x[IX(n, i+1)] : x[IX(n, i+1)];
+    }
+    for (unsigned int i = 1; i <= n; i++) { //vectorizado automatico
         x[IX(i, 0)]     = b == 2 ? -x[IX(i, 1)] : x[IX(i, 1)];
         x[IX(i, n + 1)] = b == 2 ? -x[IX(i, n)] : x[IX(i, n)];
     }
@@ -48,7 +54,6 @@ static void lin_solve(unsigned int n, boundary b, float * __restrict__ x, const 
             for (unsigned int j = 1; j <= n; j++) {
    /* original: x[IX(i, j)] = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] +
                                                      x[IX(i, j - 1)] + x[IX(i, j + 1)]) ) / c; */             
-                // leo de la memoria (desalineada)
                 __m128 _x0 = _mm_loadu_ps((float*) &x0[IX(i - 1, j + 0)]);
                 r2  = _mm_loadu_ps((float*) &x[IX(i - 1, j + 1)]);
                                                 
@@ -81,9 +86,9 @@ static void lin_solve(unsigned int n, boundary b, float * __restrict__ x, const 
                 __m128 res_aux = _mm_shuffle_ps(add5, r1, _MM_SHUFFLE(3, 0, 1, 2));
                 __m128 res = _mm_shuffle_ps(res_aux, res_aux, _MM_SHUFFLE(3, 0, 1, 2));
                 
-                // escribo en la memoria                
                 _mm_storeu_ps((float*) &x[IX(i - 1, j + 0)], res);
-                r0 = res; r1 = r2; //importante optimizacion
+                
+                r0 = res; r1 = r2; //reutilizo valores - importante optimizacion
             }            
         }
         set_bnd(n, b, x);
@@ -133,22 +138,28 @@ static void advect(unsigned int n, boundary b, float * d, const float * d0, cons
 
 static void project(unsigned int n, float *u, float *v, float *p, float *div)
 {
+    // se agrega la cota N_MAX_DUMMY para que vectorice automaticamente el loop
+    // gcc no queria vectorizarlo por que las cantidad de iteraciones son no computable
+    assert(n < N_MAX_DUMMY);
+
+    // recorrido row major (inverti el orden del recorrido)
     for (unsigned int i = 1; i <= n; i++) {
-        for (unsigned int j = 1; j <= n; j++) {
-            div[IX(i, j)] = -0.5f * (u[IX(i + 1, j)] - u[IX(i - 1, j)] +
-                                     v[IX(i, j + 1)] - v[IX(i, j - 1)]) / n;
-            p[IX(i, j)] = 0;
+        for (unsigned int j = 1; j <= n; j++) { // vectorizado automatico con -ffast-math        
+            div[IX(j, i)] = -0.5f * (u[IX(j + 1, i)] - u[IX(j - 1, i)] +
+                                     v[IX(j, i + 1)] - v[IX(j, i - 1)]) / n;
+            p[IX(j, i)] = 0;
         }
     }
+    
     set_bnd(n, 0, div);
     set_bnd(n, 0, p);
-
     lin_solve(n, 0, p, div, 1, 4);
 
+    // recorrido row major (inverti el orden del recorrido)
     for (unsigned int i = 1; i <= n; i++) {
-        for (unsigned int j = 1; j <= n; j++) {
-            u[IX(i, j)] -= 0.5f * n * (p[IX(i + 1, j)] - p[IX(i - 1, j)]);
-            v[IX(i, j)] -= 0.5f * n * (p[IX(i, j + 1)] - p[IX(i, j - 1)]);
+        for (unsigned int j = 1; j <= n; j++) { //vectorizado automatico con --ffast-math
+            u[IX(j + 0, i)] -= 0.5f * n * (p[IX(j + 1, i)] - p[IX(j - 1, i)]);
+            v[IX(j, i)] -= 0.5f * n * (p[IX(j, i + 1)] - p[IX(j, i - 1)]);
         }
     }
     set_bnd(n, 1, u);

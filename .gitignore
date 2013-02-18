@@ -3,6 +3,7 @@
 *.o
 *.s
 *.out
+cachegrind.out.*
 .depend
 
 # Deleted files #
