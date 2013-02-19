@@ -1,5 +1,6 @@
 #include <stddef.h>
 #include <assert.h>
+#include <math.h>
 #include <x86intrin.h>  // soporte para intrisics
 
 #include "solver.h"
@@ -23,9 +24,12 @@ static void add_source(unsigned int n, float * x, const float * s, float dt)
 
 static void set_bnd(unsigned int n, boundary b, float * x)
 {   
-    for (unsigned int i = 1; i <= n; i++) {
+    for (unsigned int i = 1; i <= n; i += 2) { //loop unrolling manual
         x[IX(0, i)]     = b == 1 ? -x[IX(1, i)] : x[IX(1, i)];
+        x[IX(0, i+1)]   = b == 1 ? -x[IX(1, i+1)] : x[IX(1, i+1)];
+        
         x[IX(n + 1, i)] = b == 1 ? -x[IX(n, i)] : x[IX(n, i)];
+        x[IX(n + 1, i+1)] = b == 1 ? -x[IX(n, i+1)] : x[IX(n, i+1)];
     }
     for (unsigned int i = 1; i <= n; i++) { //vectorizado automatico
         x[IX(i, 0)]     = b == 2 ? -x[IX(i, 1)] : x[IX(i, 1)];
@@ -39,16 +43,15 @@ static void set_bnd(unsigned int n, boundary b, float * x)
 
 static void lin_solve(unsigned int n, boundary b, float * x, const float * x0, float a, float c)
 {   
-    float res[8] __attribute__((aligned(16)));
+    float res __attribute__((aligned(16)));
     
     for (unsigned int k = 0; k < 20; k++) {
         for (unsigned int i = 1; i <= n; i += 4) {
             for (unsigned int j = 1; j <= n; j++) {
-                res[0] = x[IX(i - 1, j)];
+                res = x[IX(i - 1, j)];
                 for(unsigned int l = 0; l < 4; l++){
-                    res[l+1] = (x0[IX(i+l, j)] + a * (res[l] + x[IX(i + 1 + l, j)] +
-                                                      x[IX(i + l, j - 1)] + x[IX(i + l, j + 1)]) ) / c;
-                    x[IX(i + l, j)] = res[l+1];     
+                    res = (x0[IX(i+l, j)] + a * (res + x[IX(i + 1 + l, j)] + x[IX(i + l, j - 1)] + x[IX(i + l, j + 1)]) ) / c;
+                    x[IX(i + l, j)] = res;     
                 }
             }            
         }
@@ -67,30 +70,30 @@ static void advect(unsigned int n, boundary b, float * d, const float * d0, cons
 {
     int i0, i1, j0, j1;
     float x, y, s0, t0, s1, t1;
-
     float dt0 = dt * n;
-    for (unsigned int i = 1; i <= n; i++) {
-        for (unsigned int j = 1; j <= n; j++) {
+
+    // recorrido row major (inverti el orden del recorrido)
+    for (unsigned int j = 1; j <= n; j++) {
+        for (unsigned int i = 1; i <= n; i++) {
             x = i - dt0 * u[IX(i, j)];
             y = j - dt0 * v[IX(i, j)];
-            if (x > n + 0.5f) {
-                x = n + 0.5f;
-            } else if (x < 0.5f) {
-                x = 0.5f;
-            }
+
+            // evito los branches            
+            x = fminf(fmaxf(0.5f, x), n + 0.5f); 
+            y = fminf(fmaxf(0.5f, y), n + 0.5f);
+            
             i0 = (int) x;
-            i1 = i0 + 1;
-            if (y < 0.5f) {
-                y = 0.5f;
-            } else if (y > n + 0.5f) {
-                y = n + 0.5f;
-            }
             j0 = (int) y;
-            j1 = j0 + 1;
+
             s1 = x - i0;
-            s0 = 1 - s1;
             t1 = y - j0;
-            t0 = 1 - t1;
+
+            i1 =  (i0 + 1);
+            j1 =  (j0 + 1);
+
+            s0 = 1 - s1;    
+            t0 = 1 - t1;    
+                        
             d[IX(i, j)] = s0 * (t0 * d0[IX(i0, j0)] + t1 * d0[IX(i0, j1)]) +
                           s1 * (t0 * d0[IX(i1, j0)] + t1 * d0[IX(i1, j1)]);
         }

@@ -2,7 +2,7 @@ CC=gcc
 #CC=clang
 #CC=icc
 
-# probando flags de vectorizacion automatica, loop unrolling automatico, ffast-math (magia)
+# probando flags de vectorizacion automatica, loop unrolling automatico, ffast-math
 CFLAGS=-O3 -Wall -march=native -std=c99 -ftree-vectorizer-verbose=0 -fprefetch-loop-arrays -funroll-loops -fvect-cost-model -ffast-math -msse4a
 #CFLAGS=-O3 -Wall -march=native -std=c99 -ftree-vectorizer-verbose=4 -fprefetch-loop-arrays -funroll-loops -fvect-cost-model -msse4a
 #CFLAGS=-O3 -Wall -march=native -std=c99 -ffast-math -msse4a

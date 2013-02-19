@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <assert.h>
 #include <x86intrin.h>  // soporte para intrisics
+#include <math.h>       // soporte operaciones matematicas
 
 #include "solver.h"
 
@@ -105,30 +106,30 @@ static void advect(unsigned int n, boundary b, float * d, const float * d0, cons
 {
     int i0, i1, j0, j1;
     float x, y, s0, t0, s1, t1;
-
     float dt0 = dt * n;
-    for (unsigned int i = 1; i <= n; i++) {
-        for (unsigned int j = 1; j <= n; j++) {
+
+    // recorrido row major (inverti el orden del recorrido)
+    for (unsigned int j = 1; j <= n; j++) {
+        for (unsigned int i = 1; i <= n; i++) {
             x = i - dt0 * u[IX(i, j)];
             y = j - dt0 * v[IX(i, j)];
-            if (x < 0.5f) {
-                x = 0.5f;
-            } else if (x > n + 0.5f) {
-                x = n + 0.5f;
-            }
+
+            // evito los branches            
+            x = fminf(fmaxf(0.5f, x), n + 0.5f); 
+            y = fminf(fmaxf(0.5f, y), n + 0.5f);
+            
             i0 = (int) x;
-            i1 = i0 + 1;
-            if (y < 0.5f) {
-                y = 0.5f;
-            } else if (y > n + 0.5f) {
-                y = n + 0.5f;
-            }
             j0 = (int) y;
-            j1 = j0 + 1;
+
             s1 = x - i0;
-            s0 = 1 - s1;
             t1 = y - j0;
-            t0 = 1 - t1;
+
+            i1 =  (i0 + 1);
+            j1 =  (j0 + 1);
+
+            s0 = 1 - s1;    
+            t0 = 1 - t1;    
+                        
             d[IX(i, j)] = s0 * (t0 * d0[IX(i0, j0)] + t1 * d0[IX(i0, j1)]) +
                           s1 * (t0 * d0[IX(i1, j0)] + t1 * d0[IX(i1, j1)]);
         }
@@ -159,7 +160,7 @@ static void project(unsigned int n, float *u, float *v, float *p, float *div)
     for (unsigned int i = 1; i <= n; i++) {
         for (unsigned int j = 1; j <= n; j++) { //vectorizado automatico con --ffast-math
             u[IX(j  , i)] -= 0.5f * n * (p[IX(j + 1, i)] - p[IX(j - 1, i)]);
-            v[IX(j, i)] -= 0.5f * n * (p[IX(j, i + 1)] - p[IX(j, i - 1)]);
+            v[IX(j, i)]   -= 0.5f * n * (p[IX(j, i + 1)] - p[IX(j, i - 1)]);
         }
     }
     set_bnd(n, 1, u);
