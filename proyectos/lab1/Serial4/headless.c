@@ -14,11 +14,13 @@
   =======================================================================
 */
 
-#include <stdlib.h> include <stdio.h>
+#include <stdlib.h> 
+#include <stdio.h>
 
 #include "timing.h"
 
 #include <x86intrin.h>  // soporte para intrisics
+#include <mm_malloc.h>
 
 /* macros */
 

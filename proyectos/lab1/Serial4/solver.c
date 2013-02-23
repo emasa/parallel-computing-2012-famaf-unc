@@ -43,7 +43,7 @@ static void set_bnd(unsigned int n, boundary b, float * x)
 
 static void lin_solve(unsigned int n, boundary b, float * x, const float * x0, float a, float c)
 {   
-    float res __attribute__((aligned(16)));
+    float res;
     
     for (unsigned int k = 0; k < 20; k++) {
         for (unsigned int i = 1; i <= n; i += 4) {

@@ -1,0 +1,6 @@
+Los enunciados de los ejercicios estan incluidos en el source de cada programa.
+
+Ej.1: parallel_membw.c
+Ej.2: schedule.c
+Ej.3: overhead.c
+Ej.4: false_sharing.c

@@ -18,10 +18,11 @@
 #include <stdio.h>
 #include <GL/glut.h>
 
+#include <x86intrin.h>  // soporte para intrisics
+#include <mm_malloc.h>  // soporte para alocar memoria alineada (para clang)
+
 #include "solver.h"
 #include "timing.h"
-
-#include <x86intrin.h>  // soporte para intrisics
 
 /* macros */
 

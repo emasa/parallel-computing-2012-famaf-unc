@@ -6,6 +6,7 @@
 cachegrind.out.*
 .depend
 *callgraph*
+.*
 
 # Deleted files #
 ###################

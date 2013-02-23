@@ -22,6 +22,7 @@
 #include "timing.h"
 
 #include <x86intrin.h>  // soporte para intrisics
+#include <mm_malloc.h>  // soporte para alocar memoria alineada (para clang)
 
 /* macros */
 
