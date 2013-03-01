@@ -1,0 +1,9 @@
+# CUDA_PROFILE_LOG_VERSION 2.0
+# CUDA_DEVICE 0 Tesla C2070
+# CUDA_CONTEXT 1
+# TIMESTAMPFACTOR fffff6b0c508fa30
+method,gputime,cputime,occupancy
+method=[ memcpyHtoD ] gputime=[ 1330.624 ] cputime=[ 1109.000 ] 
+method=[ memcpyHtoD ] gputime=[ 1331.360 ] cputime=[ 1037.000 ] 
+method=[ _Z7mm_slowPKfS0_Pf ] gputime=[ 42720.031 ] cputime=[ 10.000 ] occupancy=[ 1.000 ] 
+method=[ memcpyDtoH ] gputime=[ 1687.136 ] cputime=[ 2408.000 ] 

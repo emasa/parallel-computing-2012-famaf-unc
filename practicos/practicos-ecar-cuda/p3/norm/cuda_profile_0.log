@@ -1,0 +1,14 @@
+# CUDA_PROFILE_LOG_VERSION 2.0
+# CUDA_DEVICE 0 Tesla C2070
+# CUDA_CONTEXT 1
+# TIMESTAMPFACTOR fffff6b00dc52e48
+method,gputime,cputime,occupancy
+method=[ memcpyHtoD ] gputime=[ 24.416 ] cputime=[ 26.000 ] 
+method=[ memset32_post ] gputime=[ 4.416 ] cputime=[ 10.000 ] occupancy=[ 0.042 ] 
+method=[ memset32_post ] gputime=[ 1.536 ] cputime=[ 4.000 ] occupancy=[ 0.042 ] 
+method=[ _Z6reduceIL9reduce_op0EEvPKhmmPj ] gputime=[ 132.416 ] cputime=[ 5.000 ] occupancy=[ 1.000 ] 
+method=[ _Z6reduceIL9reduce_op1EEvPKhmmPj ] gputime=[ 130.880 ] cputime=[ 4.000 ] occupancy=[ 1.000 ] 
+method=[ _Z4normPKhPKjS2_mmPh ] gputime=[ 15.456 ] cputime=[ 4.000 ] occupancy=[ 1.000 ] 
+method=[ memcpyDtoH ] gputime=[ 2.240 ] cputime=[ 13.000 ] 
+method=[ memcpyDtoH ] gputime=[ 1.952 ] cputime=[ 12.000 ] 
+method=[ memcpyDtoH ] gputime=[ 22.528 ] cputime=[ 65.000 ] 
