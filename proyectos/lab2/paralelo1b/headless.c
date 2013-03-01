@@ -185,6 +185,11 @@ int main ( int argc, char ** argv )
 			N, dt, diff, visc, force, source );
 	} else if (argc == 2) {
 	    N = atoi( argv[1] );
+	    dt = 0.1f;
+		diff = 0.0f;
+		visc = 0.0f;
+		force = 5.0f;
+		source = 100.0f;
 	} else {
 		N = atoi(argv[1]);
 		dt = atof(argv[2]);
