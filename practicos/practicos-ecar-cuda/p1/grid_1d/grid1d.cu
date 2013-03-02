@@ -50,19 +50,27 @@ int main(int argc, char ** argv) {
     // pedir memoria en la placa para la imagen e inicializarla con ceros
     rgba * device_gradient;
     // FALTA: pedir memoria en la placa
+    cutilSafeCall(cudaMalloc(&device_gradient, GRADIENT_BYTES));
+
     // FALTA: inicializar a 0 la memoria en la placa
+    cutilSafeCall(cudaMemset(device_gradient, 0, GRADIENT_BYTES));
+    
     // correr kernel
     dim3 block(BLOCK_SIZE);         // bloque
     // FALTA: definir el tamaño del grid de acuerdo al tamaño del bloque
     dim3 grid(DIV_CEIL(GRADIENT_SIZE, BLOCK_SIZE));
     // FALTA: llamar al kernel
+    gradient_1d<<<grid, block>>>(device_gradient, GRADIENT_SIZE);
 
     // verificar errores
     cutilCheckMsg("Fallo al lanzar el kernel:");
 
     // FALTA: esperar a que el kernel termine
-    // FALTA: copiar la imagen al host
+    cutilSafeCall(cudaDeviceSynchronize());
 
+    // FALTA: copiar la imagen al host
+    cutilSafeCall(cudaMemcpy(host_gradient, device_gradient, GRADIENT_BYTES, cudaMemcpyDefault));    
+    
     // inicializar gráficos, dibujar en pantalla
     sdls_init(GRADIENT_SIZE, IMAGE_HEIGHT);
     for (uint i = 0; i < IMAGE_HEIGHT; ++i) {
@@ -76,6 +84,9 @@ int main(int argc, char ** argv) {
 
     // limpieza de memoria
     free(host_gradient);
+
+    // FALTA: liberar memoria de la placa
+    cutilSafeCall(cudaFree(device_gradient));
 
     return 0;
 }

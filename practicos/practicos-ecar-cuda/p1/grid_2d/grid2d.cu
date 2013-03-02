@@ -64,14 +64,14 @@ int main(int argc, char ** argv) {
     // FALTA: definir el tamaño del grid
     dim3 grid(GRID_WIDTH, GRID_HEIGHT); 
     // FALTA: llamar al kernel
+    block_gradient_2d<<<grid, block>>>(device_image, IMAGE_WIDTH, IMAGE_HEIGHT);
 
     // verificar errores
     cutilCheckMsg("Fallo al lanzar el kernel:");
 
     // FALTA: esperar a que el kernel termine
-    cudaDeviceSynchronize();
+    cutilSafeCall(cudaDeviceSynchronize());
 
-    // copiar la imagen al host
     // FALTA: copiar la imagen al host
     cutilSafeCall(cudaMemcpy(host_image, device_image, IMAGE_BYTES, cudaMemcpyDefault));
 
