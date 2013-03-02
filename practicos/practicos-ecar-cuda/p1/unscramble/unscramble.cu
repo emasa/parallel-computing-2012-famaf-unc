@@ -91,9 +91,10 @@ int main(int argc, char ** argv) {
     // pedir memoria en la placa para la imagen y copiar el original
     rgba * device_image;
     // FALTA: pedir memoria para la imagen en la placa
-    cutilSafeCall(cudaMalloc(&device_image, image_bytes));
+    cutilSafeCall(cudaMalloc(&device_image, image_bytes)); 
     // FALTA: copiar la imagen desde el host a la placa
     cutilSafeCall(cudaMemcpy(device_image, image_scrambled, image_bytes, cudaMemcpyDefault));
+    
     // correr kernel
     dim3 block(BLOCK_WIDTH, BLOCK_HEIGHT);                  // bloque
     dim3 grid((width + BLOCK_WIDTH - 1) / BLOCK_WIDTH,
@@ -105,6 +106,7 @@ int main(int argc, char ** argv) {
 
     // FALTA: esperar a que el kernel termine
     cutilSafeCall(cudaDeviceSynchronize());
+    
     // FALTA: copiar la imagen procesada al host
     cutilSafeCall(cudaMemcpy(image, device_image, image_bytes, cudaMemcpyDefault));
 
@@ -122,6 +124,7 @@ int main(int argc, char ** argv) {
     free(image);
 
     // FALTA: liberar la memoria de la placa
-    cudaFree(device_image);
+    cutilSafeCall(cudaFree(device_image));
+    
     return 0;
 }

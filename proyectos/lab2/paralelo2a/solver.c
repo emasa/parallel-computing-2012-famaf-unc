@@ -20,7 +20,7 @@ static void add_source(unsigned int n, float * x, const float * s, float dt)
 
 static void set_bnd(unsigned int n, boundary b, float * x)
 {
-    // no me mejoraba paralelizando este loop
+    #pragma omp parallel for schedule(static)
     for (unsigned int i = 1; i <= n; i++) {
         x[IX(0, i)]     = b == VERTICAL ? -x[IX(1, i)] : x[IX(1, i)];
         x[IX(n + 1, i)] = b == VERTICAL ? -x[IX(n, i)] : x[IX(n, i)];
@@ -55,7 +55,7 @@ static void lin_solve(unsigned int n, boundary b, float * x, const float * x0, f
             }
         } //todos los threads se sincronizan
 
-        #pragma omp single
+        #pragma omp task
         set_bnd(n, b, x); //todos los threads se sincronizan
     }
 }
@@ -116,14 +116,8 @@ static void project(unsigned int n, float *u, float *v, float *p, float *div)
         }
     }
 
-    #pragma omp parallel sections
-    {
-        #pragma omp section
-        set_bnd(n, NONE, div);
-        
-        #pragma omp section
-        set_bnd(n, NONE, p);
-    }
+    set_bnd(n, NONE, div);        
+    set_bnd(n, NONE, p);
 
     lin_solve(n, NONE, p, div, 1, 4);
     
@@ -135,14 +129,8 @@ static void project(unsigned int n, float *u, float *v, float *p, float *div)
         }
     }
     
-    #pragma omp parallel sections
-    {
-        #pragma omp section
-        set_bnd(n, VERTICAL, u);
-        
-        #pragma omp section
-        set_bnd(n, HORIZONTAL, v);
-    }        
+    set_bnd(n, VERTICAL, u);
+    set_bnd(n, HORIZONTAL, v);
 }
 
 void dens_step(unsigned int n, float *x, float *x0, float *u, float *v, float diff, float dt)
