@@ -32,14 +32,22 @@ __device__ rgba applygamma(rgba orig, float gamma) {
 // kernel que aplica la corrección de gamma
 __global__ void gamma_kernel(rgba * image, size_t width, size_t height, float gamma) {
 
-    size_t x;   // FALTA: calcular la columna del thread
-    size_t y;   // FALTA: calcular la fila del thread
-    size_t idx; // FALTA: pasar (x,y) a un índice en el array de memoria
+    // FALTA: calcular la columna del thread
+    size_t x = blockIdx.x * blockDim.x + threadIdx.x;
+    // FALTA: calcular la fila del thread
+    size_t y = blockIdx.y * blockDim.y + threadIdx.y;
+    // FALTA: pasar (x,y) a un índice en el array de memoria
+    size_t idx = y * width + x;
 
     // FALTA: verificar que el thread opere sobre una columna y fila válida
+    if ( x < width && y < height){
         // FALTA: leer el pixel que le corresponde al thread
+        rgba orig = image[idx];
         // FALTA: aplicarle la corrección de gamma especificada
+        rgba result = applygamma(orig, gamma);
         // FALTA: escribir el pixel corregido
+        image[idx] = result;
+    }
 }
 
 

@@ -1,5 +1,5 @@
 CXX=nvcc
-CXXFLAGS=-g -G -arch=sm_20 --ptxas-options=-v
+CXXFLAGS=-g -G -arch=sm_20
 CPPFLAGS=-I/opt/cudasdk/C/common/inc/
 
 LDFLAGS=$(shell sdl-config --libs) -lSDL_image

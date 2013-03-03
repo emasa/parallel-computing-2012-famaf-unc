@@ -16,7 +16,7 @@
 
 // dimensiones de los bloques de threads
 #define BLOCK_WIDTH 32
-#define BLOCK_HEIGHT 32
+#define BLOCK_HEIGHT 16
 
 #define DIV_CEIL(n, m) ((n) + (m) -1) / (m)
 
