@@ -1,14 +1,14 @@
 CXX=nvcc
 CXXFLAGS=-O -arch=sm_20 -use_fast_math --ptxas-options "-v" --compiler-options "-Wall -O3 -march=native"
-CPPFLAGS=-I/usr/local/cuda/sdk/C/common/inc
+CPPFLAGS=-I/opt/cudasdk/C/common/inc
 
 LDFLAGS=-lm
 
-TARGETS=mm_slow
+TARGETS=mm_slow.out
 
 all: $(TARGETS)
 
-mm_slow: mm_slow.o
+mm_slow.out: mm_slow.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 %.o: %.cu

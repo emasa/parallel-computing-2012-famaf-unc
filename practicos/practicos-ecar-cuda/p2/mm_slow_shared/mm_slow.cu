@@ -12,8 +12,8 @@
 #define N 1024
 
 // dimensiones del bloque
-#define BLOCK_WIDTH 64
-#define BLOCK_HEIGHT 8
+#define BLOCK_WIDTH 32
+#define BLOCK_HEIGHT 32
 
 
 // índice de una coordenada bidimensional de una
@@ -27,24 +27,26 @@ __host__ __device__ __inline__ uint index(uint y, uint x) {
 // asume que N es divisible por las dimensiones
 // del bloque para simplificar el código
 __global__ void mm_slow(const float * a, const float * b, float * c) {
-
-    __shared__ float a_cache[BLOCK_HEIGHT][BLOCK_WIDTH];
- 
+    
+    __shared__ float shared_a[BLOCK_HEIGHT][BLOCK_WIDTH];
+        
     uint x = threadIdx.x + blockIdx.x * blockDim.x;
     uint y = threadIdx.y + blockIdx.y * blockDim.y;
+    
+    shared_a[threadIdx.y][threadIdx.x] = a[index(y, x)];
+        
+    __syncthreads();
 
-    float tmp = 0.0f;
-    for (uint j = 0; j < N ; j += BLOCK_WIDTH){
-	a_cache[threadIdx.y][threadIdx.x] = a[index(y, threadIdx.x + j)];
-        __syncthreads();
-	
-	for (uint k = 0; k < BLOCK_WIDTH; k++){
-	    tmp += a_cache[threadIdx.y][k] * b[index(k + j, x)];
-	}
-	__syncthreads();
-    }	
-    c[index(y, x)] = tmp;
+    float sum = 0.0f;
+    for (uint i = 0; i < N; ++i) {
+        sum += ((float*)shared_a)[i] * b[index(i, x)];
+    }
+    
+    c[index(y, x)] = sum;
+
+    __syncthreads();
 }
+
 
 // implementación trivial ikj en CPU de referencia
 // con algo de suerte el compilador vectoriza
