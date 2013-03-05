@@ -1,14 +1,14 @@
 CXX=nvcc
 CXXFLAGS=-O -arch=sm_20 -use_fast_math --ptxas-options "-v" --compiler-options "-Wall -O3 -march=native"
-CPPFLAGS=-I/usr/local/cuda/sdk/C/common/inc
+CPPFLAGS=-I/opt/cudasdk/C/common/inc
 
 LDFLAGS=-lm
 
-TARGETS=mm_shared
+TARGETS=mm_shared.out
 
 all: $(TARGETS)
 
-mm_shared: mm_shared.o
+mm_shared.out: mm_shared.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 %.o: %.cu

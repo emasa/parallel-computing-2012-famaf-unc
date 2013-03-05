@@ -12,9 +12,8 @@
 #define N 1024
 
 // dimensiones del bloque
-#define BLOCK_WIDTH 64
-#define BLOCK_HEIGHT 8
-#define BLOCK_SIZE BLOCK_WIDTH * BLOCK_HEIGHT
+#define BLOCK_WIDTH 32
+#define BLOCK_HEIGHT 16
 
 // índice de una coordenada bidimensional de una
 // matriz NxN en el arreglo que la almacena
@@ -23,11 +22,8 @@ __host__ __device__ __inline__ uint index(uint y, uint x) {
 }
 
 
-// multiplicación trivial de dos matrices NxN
-// asume que N es divisible por las dimensiones
-// del bloque para simplificar el código
-
-__global__ void mm_slow(const float * a, const float * b, float * c) {
+// multiplicación de dos matrices NxN usando memoria compartida
+__global__ void mm_shared(const float * a, const float * b, float * c) {
     
     uint x = blockIdx.x * blockDim.x + threadIdx.x;
     uint y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -44,7 +40,10 @@ __global__ void mm_slow(const float * a, const float * b, float * c) {
             // copiar todo el bloque de A a memoria compartida
             tmp_a[threadIdx.y][threadIdx.x] = a[index(y, i + threadIdx.x)];
             // esperar que todos los threads hayan copiado su valor
-            __syncthreads();
+            
+            // elimino barrera porque el tamaño del bloque es un warp
+            //__syncthreads();
+            
             // actualizar result para los valores de A que tenemos en shared
             for (uint j = 0; j < BLOCK_WIDTH; ++j) {
                 result += tmp_a[threadIdx.y][j] * b[index(i + j, x)];
@@ -56,6 +55,7 @@ __global__ void mm_slow(const float * a, const float * b, float * c) {
         c[index(y,x)] = result;
     }
 }
+
 
 // implementación trivial ikj en CPU de referencia
 // con algo de suerte el compilador vectoriza
@@ -127,7 +127,7 @@ int main(int argc, char *argv[]) {
     // configurar la grilla y lanzar el kernel
     dim3 block(BLOCK_WIDTH, BLOCK_HEIGHT);
     dim3 grid(N/block.x, N/block.y);
-    mm_slow<<<grid, block>>>(dev_a, dev_b, dev_c);
+    mm_shared<<<grid, block>>>(dev_a, dev_b, dev_c);
 
     // esperar que termine
     cutilSafeCall(cudaDeviceSynchronize());

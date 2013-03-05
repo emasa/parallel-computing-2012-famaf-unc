@@ -1,17 +1,14 @@
 CXX=nvcc
-CXXFLAGS=-O -arch=sm_20
+CXXFLAGS=-O -arch=sm_20 -use_fast_math --ptxas-options "-v" --compiler-options "-Wall -O3 -march=native"
 CPPFLAGS=-I/opt/cudasdk/C/common/inc
 
-LDFLAGS=$(shell sdl-config --libs) -lSDL_image
+LDFLAGS=-lm
 
-TARGETS=norm_tree.out
+TARGETS=mm_slow.out
 
 all: $(TARGETS)
 
-../../common/sdlstuff.o:
-	make -C ../../common
-
-norm_tree.out: norm_tree.o ../../common/sdlstuff.o
+mm_slow.out: mm_slow.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 %.o: %.cu

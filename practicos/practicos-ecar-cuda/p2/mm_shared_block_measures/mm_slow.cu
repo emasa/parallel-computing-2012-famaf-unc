@@ -6,14 +6,11 @@
 #include <sys/time.h>       // gettimeofday, timersub
 
 #include <cuda.h>           // API de cuda
+#include <cutil.h>
+
 #include <cutil_inline.h>   // Funciones para chequeo de errores
 
-
 #define N 1024
-
-// dimensiones del bloque
-#define BLOCK_WIDTH 32
-#define BLOCK_HEIGHT 16
 
 // índice de una coordenada bidimensional de una
 // matriz NxN en el arreglo que la almacena
@@ -22,37 +19,41 @@ __host__ __device__ __inline__ uint index(uint y, uint x) {
 }
 
 
-// multiplicación de dos matrices NxN usando memoria compartida
-__global__ void mm_shared(const float * a, const float * b, float * c) {
+// multiplicación trivial de dos matrices NxN
+// asume que N es divisible por las dimensiones
+// del bloque para simplificar el código
+
+__global__ void mm_dynamic_block(const float * a, const float * b, float * c) { 
     
     uint x = blockIdx.x * blockDim.x + threadIdx.x;
     uint y = blockIdx.y * blockDim.y + threadIdx.y;
 
+    uint block_width  = blockDim.x;
+
     if (x < N && y < N){
-    // matriz compartida donde guardamos parte de A temporalmente
-    __shared__ float tmp_a[BLOCK_HEIGHT][BLOCK_WIDTH];
+        // matriz compartida donde guardamos parte de A temporalmente
+        extern __shared__ float tmp_a[];
 
-    // acumulador temporal del resultado
-    float result = 0.0f;
+        // acumulador temporal del resultado
+        float result = 0.0f;
 
-    // avanzamos de a bloques
-    for (uint i = 0; i < N; i += BLOCK_WIDTH) {
-        // copiar todo el bloque de A a memoria compartida
-        tmp_a[threadIdx.y][threadIdx.x] = a[index(y, i + threadIdx.x)];
-        // esperar que todos los threads hayan copiado su valor
-        __syncthreads();
-        // actualizar result para los valores de A que tenemos en shared
-        for (uint j = 0; j < BLOCK_WIDTH; ++j) {
-            result += tmp_a[threadIdx.y][j] * b[index(i + j, x)];
+        // avanzamos de a bloques
+        for (uint i = 0; i < N; i += block_width) {
+            // copiar todo el bloque de A a memoria compartida
+            tmp_a[threadIdx.y * block_width + threadIdx.x] = a[index(y, i + threadIdx.x)];
+            // esperar que todos los threads hayan copiado su valor
+            __syncthreads();
+            // actualizar result para los valores de A que tenemos en shared
+            for (uint j = 0; j < block_width; ++j) {
+                result += tmp_a[threadIdx.y * block_width + j] * b[index(i + j, x)];
+            }
+            // esperar que todos los threads terminen antes de sobreescribir tmp_a
+            __syncthreads();
         }
-        // esperar que todos los threads terminen antes de sobreescribir tmp_a
-        __syncthreads();
-    }
-    // guardar el resultado final
-    c[index(y,x)] = result;
+        // guardar el resultado final
+        c[index(y,x)] = result;
     }
 }
-
 
 // implementación trivial ikj en CPU de referencia
 // con algo de suerte el compilador vectoriza
@@ -120,20 +121,48 @@ int main(int argc, char *argv[]) {
     // copiar A y B al device
     cutilSafeCall(cudaMemcpy(dev_a, host_a, matrix_size, cudaMemcpyDefault));
     cutilSafeCall(cudaMemcpy(dev_b, host_b, matrix_size, cudaMemcpyDefault));
-
-    // configurar la grilla y lanzar el kernel
-    dim3 block(BLOCK_WIDTH, BLOCK_HEIGHT);
-    dim3 grid(N/block.x, N/block.y);
-    mm_shared<<<grid, block>>>(dev_a, dev_b, dev_c);
-
-    // esperar que termine
-    cutilSafeCall(cudaDeviceSynchronize());
-    cutilCheckMsg("shared_a");
-
-    // Copiar datos al host y verificar la validez del resultado
-    cutilSafeCall(cudaMemcpy(host_c, dev_c, matrix_size, cudaMemcpyDefault));
-    check_result(host_c_reference, host_c);
-
+    
+    float kernelTime;
+    for (uint block_width = 1; block_width <= N; block_width *= 2) {
+        for (uint block_height = 1; block_height <= N; block_height *= 2) {
+            if (block_width * block_height <= N){
+                
+                // configurar la grilla y lanzar el kernel
+                dim3 block(block_width, block_height);
+                dim3 grid(N/block.x, N/block.y);
+                
+                // creo eventos
+                cudaEvent_t start, end;
+                cutilSafeCall(cudaEventCreate(&start));
+                cutilSafeCall(cudaEventCreate(&end));
+                
+                // disparo eventos (se ejecutan en el sm 0) y kernel 
+                cutilSafeCall(cudaEventRecord(start, 0));
+                mm_dynamic_block<<<grid, block, block_width*block_height>>>(dev_a, dev_b, dev_c);
+                cutilSafeCall(cudaEventRecord(end, 0));
+                
+                // esperar a que termine el kernel
+                cutilSafeCall(cudaDeviceSynchronize());
+                cutilCheckMsg("shared_a");
+                
+                // espero a que termine el evento end 
+                cutilSafeCall(cudaEventSynchronize(end));
+                
+                // Copiar datos al host y verificar la validez del resultado
+                cutilSafeCall(cudaMemcpy(host_c, dev_c, matrix_size, cudaMemcpyDefault));
+                check_result(host_c_reference, host_c);
+                
+                // calculo tiempo transcurrido
+                cutilSafeCall(cudaEventElapsedTime(&kernelTime, start, end));
+                printf ("%i %i %f\n", block_height, block_width, kernelTime);
+                
+                // destruyo eventos
+                cutilSafeCall(cudaEventDestroy(start));
+                cutilSafeCall(cudaEventDestroy(end));                
+            }
+        }
+    }
+ 
     // liberar memoria
     free(host_a);
     free(host_b);

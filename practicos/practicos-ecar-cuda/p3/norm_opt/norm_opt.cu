@@ -53,11 +53,13 @@ __global__ void max_tree(const grayscale * image, size_t width, size_t height, u
 
     __syncthreads();
 
-    for (uint distance = 1; distance <= BLOCK_SIZE / 2; distance = distance * 2) {
-        if ( tid % distance * 2 == 0) {
+    for (uint distance = BLOCK_SIZE / 2; distance >= 1; distance = distance / 2) {
+        if ( tid < distance ) {
             tmp[tid] = max(tmp[tid], tmp[tid+distance]);
         }
-        __syncthreads();
+        if (distance > 16) { //se evita sinchronizacion en un warp (<= 32 elementos)
+            __syncthreads();
+        }
     }
 
     if (tid == 0) {

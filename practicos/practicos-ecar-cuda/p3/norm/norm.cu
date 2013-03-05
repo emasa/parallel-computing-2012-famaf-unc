@@ -49,10 +49,10 @@ __global__ void reduce(const grayscale * image, size_t width, size_t height, uin
     __shared__ uint tmp;
     //solo un hilo por bloque inicializa
     if (threadIdx.x == 0 && threadIdx.y == 0){
-	if (op == REDUCE_MIN) {
-           tmp = INF; 
+	    if (op == REDUCE_MIN) {
+            tmp = INF; 
         } else {
-           tmp = 0;
+            tmp = 0;
         }
     }     
     __syncthreads();
@@ -67,7 +67,7 @@ __global__ void reduce(const grayscale * image, size_t width, size_t height, uin
     __syncthreads();
     
     if (threadIdx.x == 0 && threadIdx.y == 0){
-	if (op == REDUCE_MIN) {
+	    if (op == REDUCE_MIN) {
             atomicMin(result, tmp);
         } else {
             atomicMax(result, tmp);

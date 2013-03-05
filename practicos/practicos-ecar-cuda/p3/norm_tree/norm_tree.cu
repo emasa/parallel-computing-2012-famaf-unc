@@ -45,7 +45,8 @@ __global__ void max_tree(const grayscale * image, size_t width, size_t height, u
     uint idx = x + y * width;
 
     // FALTA: arreglo compartido unidimensional con un uint por hilo del bloque
-    __shared__ uint cache[BLOCK_SIZE];
+    __shared__ uint tmp[BLOCK_SIZE];
+    
     // FALTA: convertir el indice bidimensional del hilo dentro del bloque a
     //        unidimensional para usar el arreglo compartido y ponerlo en tid.
     uint tid = threadIdx.y * blockDim.x + threadIdx.x;
@@ -53,33 +54,31 @@ __global__ void max_tree(const grayscale * image, size_t width, size_t height, u
     //        en la memoria compartida si el hilo cae fuera de la imagen, poner
     //        el nulo del operador de reduccion (de este modo siempre tenemos
     //        tantos elementos para reducir como el tamaño de bloque)
-    if (x < width && y < heigth){
-	cache[tid] = image[idx];
-    }else{
-    	cache[tid] = 0;
-    } 
-   
+    if (x < width && y < height){
+        tmp[tid] = image[idx];
+    } else {
+        tmp[tid] = 0; //nulo del maximo
+    }
+    
     // FALTA: esperar que se copien todos los valores
     __syncthreads();
-
+    
     // Operar de a pares de elementos en la memoria compartida, subiendo en el
     // arbol de reduccion.
-    for (uint distance = 1; distance <= BLOCK_SIZE / 2; distance = distance * 2) {
+    for (uint distance = 1 ; distance <= BLOCK_SIZE / 2 ; distance *= 2){
         // FALTA: verificar que a este hilo le corresponda actualizar su valor
         //        solo. Dibuje el arbol para ver que hilos deben actuar en cada paso.
-         if ( tid % distance * 2 == 0 ) {
+        if (tid % (distance * 2) == 0){
             // actualizar mi valor operando contra un vecino cada vez mas lejano
-            tmp[tid] = max(tmp[tid], tmp[tid+distance]);
-         }
-
+            tmp[tid] = max(tmp[tid], tmp[tid + distance]);            
+        }
         // FALTA: esperar que todos los hilos terminen este paso
-	__syncthreads();
+        __syncthreads();
     }
-
+    // FALTA: el hilo 0 reduce al contador global de manera atomica
+    // una vez que termino el bloque
     if (tid == 0) {
-        // FALTA: el hilo 0 reduce al contador global de manera atomica
-        // una vez que termino el bloque
-        atomicMin(result, tmp);
+        atomicMax(result, tmp[0]);
     }
 }
 
