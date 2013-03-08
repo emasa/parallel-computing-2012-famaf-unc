@@ -67,23 +67,53 @@ static void set_bnd(unsigned int n, boundary b, float * x)
 
 template<Color color>
 __global__  static void lin_solve_update_cell(unsigned int n, float * x, const float * x0, float a, float c) {
-    
+
     // centro sumando 1 a cada coordenada
     uint i = threadIdx.y + blockIdx.y * blockDim.y + 1;     
-    uint j = threadIdx.x + blockIdx.x * blockDim.x + 1;
-    // todos los hilos del warp trabajan
-    i = i * 2 - ((j + color) % 2);
-    if (i <= n && j <= n){
-        x[IX(j, i)] = (x0[IX(j, i)] + a * (x[IX(j - 1, i)] + x[IX(j + 1, i)] + x[IX(j, i - 1)] + x[IX(j, i + 1)])) / c;
+    uint j = threadIdx.x + blockIdx.x * blockDim.x + 1;    
+    
+    if (i <= n && j <= n) {        
+        const uint tmp_block_width  = BLOCK_WIDTH  + 2;
+        const uint tmp_block_height = BLOCK_HEIGHT + 2;
+        
+        __shared__ float tmp_x[tmp_block_height][tmp_block_width];
+
+        uint tmp_i = threadIdx.y + 1;
+        uint tmp_j = threadIdx.x + 1;        
+        uint idx = threadIdx.y * blockDim.x + threadIdx.x;
+                
+        if (idx < BLOCK_HEIGHT) {
+            tmp_x[tmp_i][0] = x[IX(j-tmp_j, i)];
+            tmp_x[tmp_i][tmp_block_width - 1] = x[IX(j - tmp_j + tmp_block_width - 1, i)];
+        } 
+        
+        if (idx < BLOCK_WIDTH) { 
+            tmp_x[0][tmp_j] = x[IX(j, i-tmp_i)];
+            tmp_x[tmp_block_height-1][tmp_j] = x[IX(j, i - tmp_i + tmp_block_height - 1)];
+        }
+        
+        if (idx == 0) { 
+            tmp_x[0][0] = x[IX(j - tmp_j, i - tmp_i)];
+            tmp_x[0][tmp_block_width-1]  = x[IX(j - tmp_j + tmp_block_width - 1, i - tmp_i)];
+            tmp_x[tmp_block_height-1][0] = x[IX(j - tmp_j, i - tmp_i + tmp_block_height - 1)];
+            tmp_x[tmp_block_height-1][tmp_block_width-1] = x[IX(j - tmp_j + tmp_block_width - 1, i - tmp_i + tmp_block_height - 1)];
+        }
+        
+        tmp_x[tmp_i][tmp_j] = x[IX(j, i)];
+        
+        __syncthreads();
+
+        if ((i + j) % 2 == color) {
+            x[IX(j, i)] = (x0[IX(j, i)] + a * (tmp_x[tmp_i][tmp_j - 1] + tmp_x[tmp_i][tmp_j + 1] + tmp_x[tmp_i - 1][tmp_j] + tmp_x[tmp_i + 1][tmp_j])) / c;
+        }
     }
 }
 
 static void lin_solve(unsigned int n, boundary b, float * x, const float * x0, float a, float c)
 {    
     // dimensiones para el kernel lin_solve_update_cell
-    // utilizo n * n / 2 threads     
     dim3 block(BLOCK_WIDTH, BLOCK_HEIGHT);
-    dim3 grid(DIV_CEIL(n, block.x), DIV_CEIL(DIV_CEIL(n, 2), block.y));
+    dim3 grid(DIV_CEIL(n, block.x), DIV_CEIL(n, block.y));
     
     for (unsigned int k = 0; k < 20; k++) 
     {

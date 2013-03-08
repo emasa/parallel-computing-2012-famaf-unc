@@ -1,11 +1,11 @@
-# CC=gcc
-# CFLAGS=-std=c99 -O3 -march=native -fopenmp -ffast-math -ftree-vectorizer-verbose=1
+CC=gcc
+CFLAGS=-std=c99 -O3 -march=native -fopenmp -ffast-math -ftree-vectorizer-verbose=1
 
 # CC=clang
 # CFLAGS=-std=c99 -O3 -march=native
 
- CC=icc
- CFLAGS=-std=c99 -fast -openmp
+# CC=icc
+# CFLAGS=-std=c99 -fast -openmp
 
 # CC=/opt/ekopath/1.0.0/bin/pathcc
 # CFLAGS=-std=c99 -Ofast -march=nehalem
