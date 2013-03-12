@@ -78,26 +78,26 @@ __global__  static void lin_solve_update_cell(unsigned int n, float * x, const f
         
         __shared__ float tmp_x[tmp_block_height][tmp_block_width];
 
+        uint offset_x = blockIdx.x * blockDim.x;
+        uint offset_y = blockIdx.y * blockDim.y;
+
+        uint idx = threadIdx.y * blockDim.x + threadIdx.x; //indice lineal dentro del bloque                
+        if (idx < tmp_block_height) {
+            tmp_x[idx][0] = x[IX(offset_x, offset_y + idx)];
+            tmp_x[idx][tmp_block_width - 1] = x[IX(offset_x + tmp_block_width - 1, offset_y + idx)];
+        } else if (tmp_block_height <= idx && idx < tmp_block_height + tmp_block_width) { 
+            idx -= tmp_block_height;
+            tmp_x[0][idx] = x[IX(offset_x + idx, offset_y)];
+            tmp_x[tmp_block_height-1][idx] = x[IX(offset_x + idx, offset_y + tmp_block_height - 1)];
+        } else if (idx == tmp_block_height + tmp_block_width) { 
+            tmp_x[0][0] = x[IX(offset_x, offset_y)];
+            tmp_x[0][tmp_block_width-1]  = x[IX(offset_x + tmp_block_width - 1, offset_y)];
+            tmp_x[tmp_block_height-1][0] = x[IX(offset_x, offset_y + tmp_block_height - 1)];
+            tmp_x[tmp_block_height-1][tmp_block_width-1] = x[IX(offset_x + tmp_block_width - 1, offset_y + tmp_block_height - 1)];
+        }
+
         uint tmp_i = threadIdx.y + 1;
         uint tmp_j = threadIdx.x + 1;        
-        uint idx = threadIdx.y * blockDim.x + threadIdx.x;
-                
-        if (idx < BLOCK_HEIGHT) {
-            tmp_x[tmp_i][0] = x[IX(j-tmp_j, i)];
-            tmp_x[tmp_i][tmp_block_width - 1] = x[IX(j - tmp_j + tmp_block_width - 1, i)];
-        } 
-        
-        if (idx < BLOCK_WIDTH) { 
-            tmp_x[0][tmp_j] = x[IX(j, i-tmp_i)];
-            tmp_x[tmp_block_height-1][tmp_j] = x[IX(j, i - tmp_i + tmp_block_height - 1)];
-        }
-        
-        if (idx == 0) { 
-            tmp_x[0][0] = x[IX(j - tmp_j, i - tmp_i)];
-            tmp_x[0][tmp_block_width-1]  = x[IX(j - tmp_j + tmp_block_width - 1, i - tmp_i)];
-            tmp_x[tmp_block_height-1][0] = x[IX(j - tmp_j, i - tmp_i + tmp_block_height - 1)];
-            tmp_x[tmp_block_height-1][tmp_block_width-1] = x[IX(j - tmp_j + tmp_block_width - 1, i - tmp_i + tmp_block_height - 1)];
-        }
         
         tmp_x[tmp_i][tmp_j] = x[IX(j, i)];
         
