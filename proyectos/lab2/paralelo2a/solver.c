@@ -41,7 +41,7 @@ static void lin_solve(unsigned int n, boundary b, float * x, const float * x0, f
         // de la cache de cada hilo
         // red
         #pragma omp for schedule(static)
-        for (int i = 1; i <= n; i++) {
+        for (unsigned int i = 1; i <= n; i++) {
             for (unsigned int j = 1 + i % 2; j <= n; j += 2) {
                 x[IX(j, i)] = (x0[IX(j, i)] + a * (x[IX(j - 1, i)] + x[IX(j + 1, i)] + x[IX(j, i - 1)] + x[IX(j, i + 1)])) / c;
             }
@@ -49,7 +49,7 @@ static void lin_solve(unsigned int n, boundary b, float * x, const float * x0, f
 
         // black
         #pragma omp for schedule(static)
-        for (int i = 1; i <= n; i++) {
+        for (unsigned int i = 1; i <= n; i++) {
             for (unsigned int j = 2 - i % 2; j <= n; j += 2) {
                 x[IX(j, i)] = (x0[IX(j, i)] + a * (x[IX(j - 1, i)] + x[IX(j + 1, i)] + x[IX(j, i - 1)] + x[IX(j, i + 1)])) / c;
             }
