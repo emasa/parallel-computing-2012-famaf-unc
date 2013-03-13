@@ -17,7 +17,7 @@ typedef enum { NEITHER = 0, HORIZONTAL = 1, VERTICAL = 2 } boundary;
 static void add_source(unsigned int n, float * __restrict__ x, const float * __restrict__ s, float dt)
 {
     unsigned int size = (n + 2) * (n + 2);
-    // vectorizado automatico con -ffast-math && __restricted__
+    // vectorizado automatico con -ffast-math && __restrict__
     for (unsigned int i = 0; i < size; i++) {
         x[i] += dt * s[i];
     }
@@ -25,17 +25,13 @@ static void add_source(unsigned int n, float * __restrict__ x, const float * __r
 
 static void set_bnd(unsigned int n, boundary b, float * x)
 {   
-    for (unsigned int i = 1; i <= n; i += 2) { //loop unrolling manual
+    for (unsigned int i = 1; i <= n; i++) {
         x[IX(0, i)]     = b == HORIZONTAL ? -x[IX(1, i)] : x[IX(1, i)];
-        x[IX(0, i+1)]   = b == HORIZONTAL ? -x[IX(1, i+1)] : x[IX(1, i+1)];
-        
         x[IX(n + 1, i)] = b == HORIZONTAL ? -x[IX(n, i)] : x[IX(n, i)];
-        x[IX(n + 1, i+1)] = b == HORIZONTAL ? -x[IX(n, i+1)] : x[IX(n, i+1)];
-    }
-    for (unsigned int i = 1; i <= n; i++) { // vectorizado automatico por gcc
         x[IX(i, 0)]     = b == VERTICAL ? -x[IX(i, 1)] : x[IX(i, 1)];
         x[IX(i, n + 1)] = b == VERTICAL ? -x[IX(i, n)] : x[IX(i, n)];
     }
+
     x[IX(0, 0)]         = 0.5f * (x[IX(1, 0)]     + x[IX(0, 1)]);
     x[IX(0, n + 1)]     = 0.5f * (x[IX(1, n + 1)] + x[IX(0, n)]);
     x[IX(n + 1, 0)]     = 0.5f * (x[IX(n, 0)]     + x[IX(n + 1, 1)]);
@@ -44,21 +40,20 @@ static void set_bnd(unsigned int n, boundary b, float * x)
 
 static void lin_solve(unsigned int n, boundary b, float * x, const float * x0, float a, float c)
 {   
-    float res;
-    
+    float res = 0.;
     for (unsigned int k = 0; k < 20; k++) {
-        for (unsigned int i = 1; i <= n; i += 4) {
-            for (unsigned int j = 1; j <= n; j++) {
-                res = x[IX(i - 1, j)];
+        for (unsigned int j = 1; j <= n; j+=4) {        
+            for (unsigned int i = 1; i <= n; i++) {
+                res = x[IX(j - 1, i)];
                 for(unsigned int l = 0; l < 4; l++){
-                    res = (x0[IX(i+l, j)] + a * (res + x[IX(i + 1 + l, j)] + x[IX(i + l, j - 1)] + x[IX(i + l, j + 1)]) ) / c;
-                    x[IX(i + l, j)] = res;     
+                    x[IX(j+l, i)] = res = (x0[IX(j+l, i)] + a * (res + x[IX(j + 1 + l, i)] + x[IX(j + l, i - 1)] + x[IX(j + l, i + 1)]) ) / c;
                 }
             }            
         }
         set_bnd(n, b, x);
     }
 }
+ 
 
 
 static void diffuse(unsigned int n, boundary b, float * x, const float * x0, float diff, float dt)
@@ -67,7 +62,8 @@ static void diffuse(unsigned int n, boundary b, float * x, const float * x0, flo
     lin_solve(n, b, x, x0, a, 1 + 4 * a);
 }
 
-static void advect(unsigned int n, boundary b, float * d, const float * d0, const float * u, const float * v, float dt)
+static void advect(unsigned int n, boundary b, float * d, const float * d0, 
+                   const float * u, const float * v, float dt)
 {
     int i0, i1, j0, j1;
     float x, y, s0, t0, s1, t1;
@@ -94,7 +90,8 @@ static void advect(unsigned int n, boundary b, float * d, const float * d0, cons
 
             s0 = 1 - s1;    
             t0 = 1 - t1;    
-                        
+            
+            // el acceso a d0 no es vectorizable            
             d[IX(i, j)] = s0 * (t0 * d0[IX(i0, j0)] + t1 * d0[IX(i0, j1)]) +
                           s1 * (t0 * d0[IX(i1, j0)] + t1 * d0[IX(i1, j1)]);
         }
@@ -102,7 +99,8 @@ static void advect(unsigned int n, boundary b, float * d, const float * d0, cons
     set_bnd(n, b, d);
 }
 
-static void project(unsigned int n, float * __restrict__ u, float * __restrict__ v, float * __restrict__ p, float *__restrict__ div)
+static void project(unsigned int n, float * __restrict__ u, float * __restrict__ v, 
+                    float * __restrict__ p, float *__restrict__ div)
 {
     // se agrega la cota N_MAX_DUMMY para que vectorice automaticamente el loop
     // gcc no queria vectorizarlo por que las cantidad de iteraciones son no computable
@@ -110,7 +108,7 @@ static void project(unsigned int n, float * __restrict__ u, float * __restrict__
 
     // recorrido row major (inverti el orden del recorrido)
     for (unsigned int i = 1; i <= n; i++) {
-        // vectorizado automatico con -ffast-math && __restricted__
+        // vectorizado automatico con -ffast-math && __restrict__
         for (unsigned int j = 1; j <= n; j++) {        
             div[IX(j, i)] = -0.5f * (u[IX(j + 1, i)] - u[IX(j - 1, i)] +
                                      v[IX(j, i + 1)] - v[IX(j, i - 1)]) / n;
@@ -124,7 +122,7 @@ static void project(unsigned int n, float * __restrict__ u, float * __restrict__
 
     // recorrido row major (inverti el orden del recorrido)
     for (unsigned int i = 1; i <= n; i++) {
-        // vectorizado automatico con -ffast-math && __restricted__
+        // vectorizado automatico con -ffast-math && __restrict__
         for (unsigned int j = 1; j <= n; j++) {
             u[IX(j, i)] -= 0.5f * n * (p[IX(j + 1, i)] - p[IX(j - 1, i)]);
             v[IX(j, i)] -= 0.5f * n * (p[IX(j, i + 1)] - p[IX(j, i - 1)]);
