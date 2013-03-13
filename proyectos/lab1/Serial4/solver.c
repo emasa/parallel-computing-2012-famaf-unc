@@ -14,10 +14,11 @@
 
 typedef enum { NEITHER = 0, HORIZONTAL = 1, VERTICAL = 2 } boundary;
 
-static void add_source(unsigned int n, float * x, const float * s, float dt)
+static void add_source(unsigned int n, float * __restrict__ x, const float * __restrict__ s, float dt)
 {
     unsigned int size = (n + 2) * (n + 2);
-    for (unsigned int i = 0; i < size; i++) { //vectorizado automatico con -ffast-math 
+    // vectorizado automatico con -ffast-math && __restricted__
+    for (unsigned int i = 0; i < size; i++) {
         x[i] += dt * s[i];
     }
 }
@@ -25,15 +26,15 @@ static void add_source(unsigned int n, float * x, const float * s, float dt)
 static void set_bnd(unsigned int n, boundary b, float * x)
 {   
     for (unsigned int i = 1; i <= n; i += 2) { //loop unrolling manual
-        x[IX(0, i)]     = b == 1 ? -x[IX(1, i)] : x[IX(1, i)];
-        x[IX(0, i+1)]   = b == 1 ? -x[IX(1, i+1)] : x[IX(1, i+1)];
+        x[IX(0, i)]     = b == HORIZONTAL ? -x[IX(1, i)] : x[IX(1, i)];
+        x[IX(0, i+1)]   = b == HORIZONTAL ? -x[IX(1, i+1)] : x[IX(1, i+1)];
         
-        x[IX(n + 1, i)] = b == 1 ? -x[IX(n, i)] : x[IX(n, i)];
-        x[IX(n + 1, i+1)] = b == 1 ? -x[IX(n, i+1)] : x[IX(n, i+1)];
+        x[IX(n + 1, i)] = b == HORIZONTAL ? -x[IX(n, i)] : x[IX(n, i)];
+        x[IX(n + 1, i+1)] = b == HORIZONTAL ? -x[IX(n, i+1)] : x[IX(n, i+1)];
     }
-    for (unsigned int i = 1; i <= n; i++) { //vectorizado automatico
-        x[IX(i, 0)]     = b == 2 ? -x[IX(i, 1)] : x[IX(i, 1)];
-        x[IX(i, n + 1)] = b == 2 ? -x[IX(i, n)] : x[IX(i, n)];
+    for (unsigned int i = 1; i <= n; i++) { // vectorizado automatico por gcc
+        x[IX(i, 0)]     = b == VERTICAL ? -x[IX(i, 1)] : x[IX(i, 1)];
+        x[IX(i, n + 1)] = b == VERTICAL ? -x[IX(i, n)] : x[IX(i, n)];
     }
     x[IX(0, 0)]         = 0.5f * (x[IX(1, 0)]     + x[IX(0, 1)]);
     x[IX(0, n + 1)]     = 0.5f * (x[IX(1, n + 1)] + x[IX(0, n)]);
@@ -101,7 +102,7 @@ static void advect(unsigned int n, boundary b, float * d, const float * d0, cons
     set_bnd(n, b, d);
 }
 
-static void project(unsigned int n, float *u, float *v, float *p, float *div)
+static void project(unsigned int n, float * __restrict__ u, float * __restrict__ v, float * __restrict__ p, float *__restrict__ div)
 {
     // se agrega la cota N_MAX_DUMMY para que vectorice automaticamente el loop
     // gcc no queria vectorizarlo por que las cantidad de iteraciones son no computable
@@ -109,7 +110,8 @@ static void project(unsigned int n, float *u, float *v, float *p, float *div)
 
     // recorrido row major (inverti el orden del recorrido)
     for (unsigned int i = 1; i <= n; i++) {
-        for (unsigned int j = 1; j <= n; j++) { // vectorizado automatico con -ffast-math        
+        // vectorizado automatico con -ffast-math && __restricted__
+        for (unsigned int j = 1; j <= n; j++) {        
             div[IX(j, i)] = -0.5f * (u[IX(j + 1, i)] - u[IX(j - 1, i)] +
                                      v[IX(j, i + 1)] - v[IX(j, i - 1)]) / n;
             p[IX(j, i)] = 0;
@@ -122,7 +124,8 @@ static void project(unsigned int n, float *u, float *v, float *p, float *div)
 
     // recorrido row major (inverti el orden del recorrido)
     for (unsigned int i = 1; i <= n; i++) {
-        for (unsigned int j = 1; j <= n; j++) { //vectorizado automatico con --ffast-math
+        // vectorizado automatico con -ffast-math && __restricted__
+        for (unsigned int j = 1; j <= n; j++) {
             u[IX(j, i)] -= 0.5f * n * (p[IX(j + 1, i)] - p[IX(j - 1, i)]);
             v[IX(j, i)] -= 0.5f * n * (p[IX(j, i + 1)] - p[IX(j, i - 1)]);
         }
