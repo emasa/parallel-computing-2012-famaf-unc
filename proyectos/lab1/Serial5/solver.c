@@ -48,15 +48,18 @@ static void lin_solve(unsigned int n, boundary b, float * x, const float * x0, f
     float res_tmp[4] __attribute__((aligned(16)));
     for (unsigned int k = 0; k < 20; k++) {
         for (unsigned int i = 1; i <= n; i++) {
+            unsigned int left_bnd = 3 - i * (n + 2) % 4; //limite izquierdo
+            unsigned int right_bnd = n + 1 - (n - left_bnd) % 4; //limite derecho
+        
             // extremo que no se puede vectorizar
-            for (unsigned int j = 1; j <= 3; j++) {
+            for (unsigned int j = 1; j <= left_bnd; j++) {
                 x[IX(j, i)] = (x0[IX(j, i)] + a * (x[IX(j - 1, i)] + x[IX(j + 1, i)] +
                                                    x[IX(j, i - 1)] + x[IX(j, i + 1)]) ) / c;
             }
                 
-            float left1 = x[IX(3, i)]; // para opcion 1            
+            float left1 = x[IX(left_bnd, i)]; // para opcion 1            
             //__m128 left = _mm_loadu_ps((float*) &x[IX(0, i)]); // para opcion 2
-            for (unsigned int j = 4; j <= n-3; j += 4) {
+            for (unsigned int j = left_bnd + 1; j < right_bnd; j += 4) {
                 __m128 x0_vec = _mm_loadu_ps((float*) &x0[IX(j, i)]);
                 __m128 x0_div_c = _mm_mul_ps(x0_vec, inv_c_s);
                 
@@ -74,7 +77,7 @@ static void lin_solve(unsigned int n, boundary b, float * x, const float * x0, f
                 }
                 res = _mm_loadu_ps((float*) &res_tmp);
                 /*************************************************/                                
-                 /**************** opcion 2 (mas lenta) **********/
+                /**************** opcion 2 (mas lenta) **********/
                 /*
                 left = SHIFT_RIGHT(left);                
                 for(unsigned int l = 0; l < 4; l++){
@@ -88,7 +91,7 @@ static void lin_solve(unsigned int n, boundary b, float * x, const float * x0, f
                 _mm_storeu_ps((float*) &x[IX(j, i)], res);
             }
             // extremo que no se puede vectorizar
-            for (unsigned int j = n-2; j <= n; j++) {
+            for (unsigned int j = right_bnd; j <= n; j++) {
                 x[IX(j, i)] = (x0[IX(j, i)] + a * (x[IX(j - 1, i)] + x[IX(j + 1, i)] +
                                                    x[IX(j, i - 1)] + x[IX(j, i + 1)]) ) / c;
             }
@@ -147,12 +150,15 @@ static void project(unsigned int n, float * __restrict__ u, float * __restrict__
     __m128 inv_neg_2n = _mm_set1_ps(-1. / (2 * n));
     // recorrido row major (inverti el orden del recorrido)
     for (unsigned int i = 1; i <= n; i++) {
+        unsigned int left_bnd = 3 - i * (n + 2) % 4; // limite izquierdo
+        unsigned int right_bnd = n + 1 - (n - left_bnd) % 4; // limite derecho
+        
         // extremo que no se puede vectorizar
-        for (unsigned int j = 1; j <= 3; j++) {
+        for (unsigned int j = 1; j <= left_bnd; j++) {
             div[IX(j, i)] = -0.5f * (u[IX(j + 1, i)] - u[IX(j - 1, i)] +
                                      v[IX(j, i + 1)] - v[IX(j, i - 1)]) / n;
         }
-        for (unsigned int j = 4; j <= n-3; j += 4) {
+        for (unsigned int j = left_bnd + 1; j < right_bnd; j += 4) {
             // lecturas desalineadas
             __m128 u_left  = _mm_loadu_ps((float*) &u[IX(j-1, i)]);
             __m128 u_right = _mm_loadu_ps((float*) &u[IX(j+1, i)]);
@@ -168,7 +174,7 @@ static void project(unsigned int n, float * __restrict__ u, float * __restrict__
             _mm_storeu_ps((float*) &div[IX(j, i)], res);            
         }
         // extremo que no se puede vectorizar
-        for (unsigned int j = n-2; j <= n; j++) {
+        for (unsigned int j = right_bnd; j <= n; j++) {
             div[IX(j, i)] = -0.5f * (u[IX(j + 1, i)] - u[IX(j - 1, i)] +
                                      v[IX(j, i + 1)] - v[IX(j, i - 1)]) / n;
         }
@@ -183,12 +189,15 @@ static void project(unsigned int n, float * __restrict__ u, float * __restrict__
     __m128 n_div_2 = _mm_set1_ps(n / 2.);
     // recorrido row major (inverti el orden del recorrido)
     for (unsigned int i = 1; i <= n; i++) {
+        unsigned int left_bnd = 3 - i * (n + 2) % 4; // limite izquierdo
+        unsigned int right_bnd = n + 1 - (n - left_bnd) % 4; // limite derecho      
+        
         // extremo que no se puede vectorizar
-        for (unsigned int j = 1; j <= 3; j++) {
+        for (unsigned int j = 1; j <= left_bnd; j++) {
             u[IX(j, i)] -= 0.5f * n * (p[IX(j + 1, i)] - p[IX(j - 1, i)]);
             v[IX(j, i)] -= 0.5f * n * (p[IX(j, i + 1)] - p[IX(j, i - 1)]);
         }
-        for (unsigned int j = 4; j <= n-3; j+=4) {
+        for (unsigned int j = left_bnd + 1; j < right_bnd; j += 4) {
             // lecturas desalineadas
             __m128 p_left  = _mm_loadu_ps((float*) &p[IX(j-1, i)]);
             __m128 p_right = _mm_loadu_ps((float*) &p[IX(j+1, i)]);            
@@ -207,7 +216,7 @@ static void project(unsigned int n, float * __restrict__ u, float * __restrict__
             _mm_storeu_ps((float*) &v[IX(j, i)], v_sub_p);             
         }
         // extremo que no se puede vectorizar        
-        for (unsigned int j=n-2; j <= n; j++) {
+        for (unsigned int j = right_bnd; j <= n; j++) {
             u[IX(j, i)] -= 0.5f * n * (p[IX(j + 1, i)] - p[IX(j - 1, i)]);
             v[IX(j, i)] -= 0.5f * n * (p[IX(j, i + 1)] - p[IX(j, i - 1)]);
         }            

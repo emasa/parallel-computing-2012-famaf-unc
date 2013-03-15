@@ -14,14 +14,18 @@
   =======================================================================
 */
 
-#include <stdlib.h>
+#include <stdlib.h> 
 #include <stdio.h>
 
 #include "timing.h"
 
+#include <x86intrin.h>  // soporte para intrisics
+#include <mm_malloc.h>
+
 /* macros */
 
 #define IX(i,j) ((i)+(N+2)*(j))
+#define CACHE_LINE 16
 
 /* external definitions (from solver.c) */
 
@@ -47,12 +51,12 @@ static float * dens, * dens_prev;
 
 static void free_data ( void )
 {
-	if ( u ) free ( u );
-	if ( v ) free ( v );
-	if ( u_prev ) free ( u_prev );
-	if ( v_prev ) free ( v_prev );
-	if ( dens ) free ( dens );
-	if ( dens_prev ) free ( dens_prev );
+	if ( u ) _mm_free ( u );
+	if ( v ) _mm_free ( v );
+	if ( u_prev ) _mm_free ( u_prev );
+	if ( v_prev ) _mm_free ( v_prev );
+	if ( dens ) _mm_free ( dens );
+	if ( dens_prev ) _mm_free ( dens_prev );
 }
 
 static void clear_data ( void )
@@ -68,12 +72,12 @@ static int allocate_data ( void )
 {
 	int size = (N+2)*(N+2);
 
-	u			= (float *) malloc ( size*sizeof(float) );
-	v			= (float *) malloc ( size*sizeof(float) );
-	u_prev		= (float *) malloc ( size*sizeof(float) );
-	v_prev		= (float *) malloc ( size*sizeof(float) );
-	dens		= (float *) malloc ( size*sizeof(float) );
-	dens_prev	= (float *) malloc ( size*sizeof(float) );
+	u			= (float *) _mm_malloc ( size*sizeof(float) , CACHE_LINE);
+	v			= (float *) _mm_malloc ( size*sizeof(float) , CACHE_LINE);
+	u_prev		= (float *) _mm_malloc ( size*sizeof(float) , CACHE_LINE);
+	v_prev		= (float *) _mm_malloc ( size*sizeof(float) , CACHE_LINE);
+	dens		= (float *) _mm_malloc ( size*sizeof(float) , CACHE_LINE);	
+	dens_prev	= (float *) _mm_malloc ( size*sizeof(float) , CACHE_LINE);
 
 	if ( !u || !v || !u_prev || !v_prev || !dens || !dens_prev ) {
 		fprintf ( stderr, "cannot allocate data\n" );
@@ -85,24 +89,22 @@ static int allocate_data ( void )
 
 
 
-static void react ( float * d, float * u, float * v )
+static void react ( float * __restrict__ d, float * __restrict__ u, float * __restrict__ v )
 {
 	int i, size = (N+2)*(N+2);
 	float max_velocity2 = 0.0f;
 	float max_density = 0.0f;
 
 	max_velocity2 = max_density = 0.0f;
-	for ( i=0 ; i<size ; i++ ) { 	//vectorizado automatico con -ffast-math
+	//vectorizado automatico con -ffast-math && __restrict__
+	for ( i=0 ; i<size ; i++ ) {
 		if (max_velocity2 < u[i]*u[i] + v[i]*v[i]) {
 			max_velocity2 = u[i]*u[i] + v[i]*v[i];
 		}
 		if (max_density < d[i]) {
 			max_density = d[i];
 		}
-	}
-
-	for ( i=0 ; i<size ; i++ ) {    //vectorizado automatico
-		u[i] = v[i] = d[i] = 0.0f;
+	    u[i] = v[i] = d[i] = 0.0f;
 	}
 
 	if (max_velocity2<0.0000005f) {
@@ -162,7 +164,7 @@ int main ( int argc, char ** argv )
 {
 	int i = 0;
 
-	if ( argc != 1 && argc != 6 ) {
+	if ( argc != 1 && argc != 2 && argc != 6 ) {
 		fprintf ( stderr, "usage : %s N dt diff visc force source\n", argv[0] );
 		fprintf ( stderr, "where:\n" );\
 		fprintf ( stderr, "\t N      : grid resolution\n" );
@@ -177,6 +179,15 @@ int main ( int argc, char ** argv )
 	if ( argc == 1 ) {
 		N = 128;
 		dt = 0.1f;
+		diff = 0.0f;
+		visc = 0.0f;
+		force = 5.0f;
+		source = 100.0f;
+		fprintf ( stderr, "Using defaults : N=%d dt=%g diff=%g visc=%g force = %g source=%g\n",
+			N, dt, diff, visc, force, source );
+	} else if (argc == 2) {
+	    N = atoi( argv[1] );
+	    		dt = 0.1f;
 		diff = 0.0f;
 		visc = 0.0f;
 		force = 5.0f;

@@ -364,7 +364,7 @@ int main ( int argc, char ** argv )
 {
 	glutInit ( &argc, argv );
 
-	if ( argc != 1 && argc != 6 ) {
+	if ( argc != 1 && argc != 2 && argc != 6 ) {
 		fprintf ( stderr, "usage : %s N dt diff visc force source\n", argv[0] );
 		fprintf ( stderr, "where:\n" );\
 		fprintf ( stderr, "\t N      : grid resolution\n" );
@@ -377,8 +377,17 @@ int main ( int argc, char ** argv )
 	}
 
 	if ( argc == 1 ) {
-		N = 256;
+		N = 128;
 		dt = 0.1f;
+		diff = 0.0f;
+		visc = 0.0f;
+		force = 5.0f;
+		source = 100.0f;
+		fprintf ( stderr, "Using defaults : N=%d dt=%g diff=%g visc=%g force = %g source=%g\n",
+			N, dt, diff, visc, force, source );
+	} else if (argc == 2) {
+	    N = atoi( argv[1] );
+	    dt = 0.1f;
 		diff = 0.0f;
 		visc = 0.0f;
 		force = 5.0f;

@@ -18,12 +18,16 @@
 #include <stdio.h>
 #include <GL/glut.h>
 
+#include <x86intrin.h>  // soporte para intrisics
+#include <mm_malloc.h>  // soporte para alocar memoria alineada (para clang)
+
 #include "solver.h"
 #include "timing.h"
 
 /* macros */
 
 #define IX(i,j) ((i)+(N+2)*(j))
+#define CACHE_LINE 16
 
 /* global variables */
 
@@ -50,12 +54,12 @@ static int omx, omy, mx, my;
 
 static void free_data ( void )
 {
-	if ( u ) free ( u );
-	if ( v ) free ( v );
-	if ( u_prev ) free ( u_prev );
-	if ( v_prev ) free ( v_prev );
-	if ( dens ) free ( dens );
-	if ( dens_prev ) free ( dens_prev );
+	if ( u ) _mm_free ( u );
+	if ( v ) _mm_free ( v );
+	if ( u_prev ) _mm_free ( u_prev );
+	if ( v_prev ) _mm_free ( v_prev );
+	if ( dens ) _mm_free ( dens );
+	if ( dens_prev ) _mm_free ( dens_prev );
 }
 
 static void clear_data ( void )
@@ -71,12 +75,12 @@ static int allocate_data ( void )
 {
 	int size = (N+2)*(N+2);
 
-	u			= (float *) malloc ( size*sizeof(float) );
-	v			= (float *) malloc ( size*sizeof(float) );
-	u_prev		= (float *) malloc ( size*sizeof(float) );
-	v_prev		= (float *) malloc ( size*sizeof(float) );
-	dens		= (float *) malloc ( size*sizeof(float) );	
-	dens_prev	= (float *) malloc ( size*sizeof(float) );
+	u			= (float *) _mm_malloc ( size*sizeof(float) , CACHE_LINE);
+	v			= (float *) _mm_malloc ( size*sizeof(float) , CACHE_LINE);
+	u_prev		= (float *) _mm_malloc ( size*sizeof(float) , CACHE_LINE);
+	v_prev		= (float *) _mm_malloc ( size*sizeof(float) , CACHE_LINE);
+	dens		= (float *) _mm_malloc ( size*sizeof(float) , CACHE_LINE);	
+	dens_prev	= (float *) _mm_malloc ( size*sizeof(float) , CACHE_LINE);
 
 	if ( !u || !v || !u_prev || !v_prev || !dens || !dens_prev ) {
 		fprintf ( stderr, "cannot allocate data\n" );

@@ -42,19 +42,15 @@ static void lin_solve(unsigned int n, boundary b, float * x, const float * x0, f
 {   
     float res = 0.;
     for (unsigned int k = 0; k < 20; k++) {
-        for (unsigned int j = 1; j <= n; j+=4) {        
-            for (unsigned int i = 1; i <= n; i++) {
-                res = x[IX(j - 1, i)];
-                for(unsigned int l = 0; l < 4; l++){
-                    x[IX(j+l, i)] = res = (x0[IX(j+l, i)] + a * (res + x[IX(j + 1 + l, i)] + x[IX(j + l, i - 1)] + x[IX(j + l, i + 1)]) ) / c;
-                }
+        for (unsigned int i = 1; i <= n; i++) {        
+            res = x[IX(0, i)];
+            for (unsigned int j = 1; j <= n; j++) {
+                x[IX(j, i)] = res = (x0[IX(j, i)] + a * (res + x[IX(j + 1, i)] + x[IX(j, i - 1)] + x[IX(j, i + 1)]) ) / c;
             }            
         }
         set_bnd(n, b, x);
     }
 }
- 
-
 
 static void diffuse(unsigned int n, boundary b, float * x, const float * x0, float diff, float dt)
 {
