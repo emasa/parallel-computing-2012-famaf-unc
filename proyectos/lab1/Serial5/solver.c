@@ -129,16 +129,6 @@ static void advect(unsigned int n, boundary b, float * d, const float * d0,
             // evito los branches            
             x = fminf(fmaxf(0.5f, x), n + 0.5f); 
             y = fminf(fmaxf(0.5f, y), n + 0.5f);
-            /*if (x < 0.5f) {
-              x = 0.5f;
-            } else if (x > n + 0.5f) {
-              x = n + 0.5f;
-            }
-            if (y < 0.5f) {
-              y = 0.5f;
-            } else if (y > n + 0.5f) {
-              y = n + 0.5f;
-            }*/
             
             i0 = (int) x;
             j0 = (int) y;
