@@ -15,18 +15,34 @@
 
 typedef enum { NEITHER = 0, HORIZONTAL = 1, VERTICAL = 2 } boundary;
 
+/*
 static void add_source(unsigned int n, float * __restrict__ x, const float * __restrict__ s, float dt)
-{
+{    
+    __m128 dt_vec   = _mm_set1_ps(dt);
+    unsigned int size = (n + 2) * (n + 2), end = size - (size % 4);
+            
+    for (unsigned int i = 0; i < end; i += 4) {
+        __m128 x_vec = _mm_load_ps((float*) &x[i]);
+        __m128 s_vec = _mm_load_ps((float*) &s[i]); 
+        x_vec = _mm_add_ps(x_vec, _mm_mul_ps(dt_vec, s_vec));
+        _mm_store_ps((float*) &x[i], x_vec);
+    }
+    for (unsigned int i = end; i < size; i++){
+        x[i] += dt * s[i];
+    }
+}
+*/
+
+static void add_source(unsigned int n, float * __restrict__ x, const float * __restrict__ s, float dt)
+{    
     unsigned int size = (n + 2) * (n + 2);
-    // vectorizado automatico con -ffast-math && __restrict__
-    for (unsigned int i = 0; i < size; i++) {
+    for (unsigned int i = 0; i < size; i++){
         x[i] += dt * s[i];
     }
 }
 
 static void set_bnd(unsigned int n, boundary b, float * x)
 {   
-    // no influye
     for (unsigned int i = 1; i <= n; i++) {
         x[IX(0, i)]     = b == HORIZONTAL ? -x[IX(1, i)] : x[IX(1, i)];
         x[IX(n + 1, i)] = b == HORIZONTAL ? -x[IX(n, i)] : x[IX(n, i)];
@@ -48,6 +64,7 @@ static void lin_solve(unsigned int n, boundary b, float * x, const float * x0, f
     float res_tmp[4] __attribute__((aligned(16)));
     for (unsigned int k = 0; k < 20; k++) {
         for (unsigned int i = 1; i <= n; i++) {
+            // se definen los limites para maximizar el acceso a memoria alineada
             unsigned int left_bnd = 3 - i * (n + 2) % 4; //limite izquierdo
             unsigned int right_bnd = n + 1 - (n - left_bnd) % 4; //limite derecho
         
@@ -58,44 +75,33 @@ static void lin_solve(unsigned int n, boundary b, float * x, const float * x0, f
             }
                 
             float left1 = x[IX(left_bnd, i)]; // para opcion 1            
-            //__m128 left = _mm_loadu_ps((float*) &x[IX(0, i)]); // para opcion 2
             for (unsigned int j = left_bnd + 1; j < right_bnd; j += 4) {
-                __m128 x0_vec = _mm_loadu_ps((float*) &x0[IX(j, i)]);
+                // lecturas alineadas
+                __m128 x0_vec = _mm_load_ps((float*) &x0[IX(j, i)]);
                 __m128 x0_div_c = _mm_mul_ps(x0_vec, inv_c_s);
                 
+                // lecturas posiblemente desalineadas
                 __m128 up  = _mm_loadu_ps((float*) &x[IX(j, i-1)]);
                 __m128 down = _mm_loadu_ps((float*) &x[IX(j, i+1)]);                
-                __m128 right = _mm_loadu_ps((float*) &x[IX(j+1, i)]); // desalineado
+                __m128 right = _mm_loadu_ps((float*) &x[IX(j+1, i)]);
                 
                 __m128 sum = _mm_add_ps(_mm_add_ps(up, down), right);
                 __m128 res = _mm_add_ps(_mm_mul_ps(sum, a_div_c_s), x0_div_c);
                 
-                /********************* opcion 1 ******************/
-                _mm_storeu_ps((float*) &res_tmp, res);
+                // no se puede acceder a la estructura interna __m128 con icc
+                _mm_store_ps((float*) &res_tmp, res);
                 for(unsigned int l = 0; l < 4; l++){
                     res_tmp[l] = left1 = left1*a/c + res_tmp[l];
                 }
-                res = _mm_loadu_ps((float*) &res_tmp);
-                /*************************************************/                                
-                /**************** opcion 2 (mas lenta) **********/
-                /*
-                left = SHIFT_RIGHT(left);                
-                for(unsigned int l = 0; l < 4; l++){
-                    left  = _mm_mul_ss(left, a_div_c_s);
-                    left  = _mm_add_ss(res, left);
-                    res = SHIFT_LEFT(left);
-                }
-                left = res;                
-                */
-                /*************************************************/                
-                _mm_storeu_ps((float*) &x[IX(j, i)], res);
+                res = _mm_load_ps((float*) &res_tmp);
+                                
+                _mm_store_ps((float*) &x[IX(j, i)], res);
             }
             // extremo que no se puede vectorizar
             for (unsigned int j = right_bnd; j <= n; j++) {
                 x[IX(j, i)] = (x0[IX(j, i)] + a * (x[IX(j - 1, i)] + x[IX(j + 1, i)] +
                                                    x[IX(j, i - 1)] + x[IX(j, i + 1)]) ) / c;
             }
-            
         }
         set_bnd(n, b, x);
     }
@@ -123,6 +129,16 @@ static void advect(unsigned int n, boundary b, float * d, const float * d0,
             // evito los branches            
             x = fminf(fmaxf(0.5f, x), n + 0.5f); 
             y = fminf(fmaxf(0.5f, y), n + 0.5f);
+            /*if (x < 0.5f) {
+              x = 0.5f;
+            } else if (x > n + 0.5f) {
+              x = n + 0.5f;
+            }
+            if (y < 0.5f) {
+              y = 0.5f;
+            } else if (y > n + 0.5f) {
+              y = n + 0.5f;
+            }*/
             
             i0 = (int) x;
             j0 = (int) y;
@@ -159,7 +175,7 @@ static void project(unsigned int n, float * __restrict__ u, float * __restrict__
                                      v[IX(j, i + 1)] - v[IX(j, i - 1)]) / n;
         }
         for (unsigned int j = left_bnd + 1; j < right_bnd; j += 4) {
-            // lecturas desalineadas
+            // lecturas posiblemente desalineadas
             __m128 u_left  = _mm_loadu_ps((float*) &u[IX(j-1, i)]);
             __m128 u_right = _mm_loadu_ps((float*) &u[IX(j+1, i)]);
             __m128 u_sub = _mm_sub_ps(u_right, u_left);            
@@ -171,7 +187,7 @@ static void project(unsigned int n, float * __restrict__ u, float * __restrict__
             __m128 add = _mm_add_ps(u_sub, v_sub);            
             __m128 res = _mm_mul_ps(add, inv_neg_2n);
             
-            _mm_storeu_ps((float*) &div[IX(j, i)], res);            
+            _mm_store_ps((float*) &div[IX(j, i)], res);            
         }
         // extremo que no se puede vectorizar
         for (unsigned int j = right_bnd; j <= n; j++) {
@@ -198,22 +214,26 @@ static void project(unsigned int n, float * __restrict__ u, float * __restrict__
             v[IX(j, i)] -= 0.5f * n * (p[IX(j, i + 1)] - p[IX(j, i - 1)]);
         }
         for (unsigned int j = left_bnd + 1; j < right_bnd; j += 4) {
-            // lecturas desalineadas
+            // lecturas posiblemente desalineadas
             __m128 p_left  = _mm_loadu_ps((float*) &p[IX(j-1, i)]);
             __m128 p_right = _mm_loadu_ps((float*) &p[IX(j+1, i)]);            
+            
+            __m128 u_center = _mm_loadu_ps((float*) &u[IX(j, i)]);
+            
             __m128 p_subh = _mm_sub_ps(p_right, p_left);
             __m128 p_subh_mul_n_div_2 = _mm_mul_ps(p_subh, n_div_2); 
-            __m128 u_center = _mm_loadu_ps((float*) &u[IX(j, i)]);
             __m128 u_sub_p  = _mm_sub_ps(u_center, p_subh_mul_n_div_2);
-            _mm_storeu_ps((float*) &u[IX(j, i)], u_sub_p);    
+            _mm_store_ps((float*) &u[IX(j, i)], u_sub_p);    
 
             __m128 p_up = _mm_loadu_ps((float*) &p[IX(j, i-1)]);            
             __m128 p_down = _mm_loadu_ps((float*) &p[IX(j, i+1)]);
+            
             __m128 p_subv = _mm_sub_ps(p_down, p_up);                
             __m128 p_subv_mul_n_div_2 = _mm_mul_ps(p_subv, n_div_2); 
-            __m128 v_center = _mm_loadu_ps((float*) &v[IX(j, i)]);
+
+            __m128 v_center = _mm_load_ps((float*) &v[IX(j, i)]);
             __m128 v_sub_p  = _mm_sub_ps(v_center, p_subv_mul_n_div_2);
-            _mm_storeu_ps((float*) &v[IX(j, i)], v_sub_p);             
+            _mm_store_ps((float*) &v[IX(j, i)], v_sub_p);             
         }
         // extremo que no se puede vectorizar        
         for (unsigned int j = right_bnd; j <= n; j++) {
