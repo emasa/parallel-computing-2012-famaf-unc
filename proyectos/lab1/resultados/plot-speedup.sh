@@ -5,10 +5,10 @@
 #
 gnuplot << EOF
 set terminal postscript eps color enhanced
-set output "serial-scaling.eps"
+set output "serial-speedup.eps"
 set xlabel "N"
-set ylabel "scaling [ns per cell]"
-set title "scaling vs N vs version"
+set ylabel "speedup"
+set title "speedup vs N vs version"
 set key left top
-plot for [i=2:7] "$1" using 1:i with linespoints title columnhead(i) linewidth 4
+plot for [i=1:3] "$1" using 1:(column(2*i+1)/column(2*i)) with linespoints title columnhead(2*i) linewidth 4
 EOF
