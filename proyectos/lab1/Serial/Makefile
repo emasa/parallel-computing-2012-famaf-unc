@@ -2,8 +2,8 @@ CC=gcc
 #CC=clang
 #CC=icc
 
-CFLAGS=-O3 -Wall -march=native -std=c99 -g -pg
-LDFLAGS=-pg
+CFLAGS=-O3 -Wall -march=native -std=c99 # -g -pg
+LDFLAGS=
 
 TARGETS=headless.out demo.out
 SOURCES=$(shell echo *.c)
