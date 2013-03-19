@@ -76,8 +76,9 @@ static void lin_solve(unsigned int n, boundary b, float * x, const float * x0, f
 
             #pragma omp barrier //todos los threads se sincronizan
 
-            #pragma omp single  //todos los threads se sincronizan
+            #pragma task wait  //todos los threads se sincronizan
             set_bnd(n, b, x);
+            #pragma task taskwait
         }
     }
 }
@@ -95,7 +96,6 @@ static void advect(unsigned int n, boundary b, float * d, const float * d0, cons
     float x, y, s0, t0, s1, t1;
 
     float dt0 = dt * n; //se deja compartida
-    //TODO: probar dynamic
     #pragma omp parallel for schedule(static) default(shared) private(i0, i1, j0, j1, x, y, s0, t0, s1, t1)
     for (unsigned int j = 1; j <= n; j++) {
         for (unsigned int i = 1; i <= n; i++) {
@@ -138,14 +138,8 @@ static void project(unsigned int n, float *u, float *v, float *p, float *div)
         }
     }
 
-    #pragma omp parallel sections
-    {
-        #pragma omp section
-        set_bnd(n, NONE, div);
-        
-        #pragma omp section
-        set_bnd(n, NONE, p);
-    }
+    set_bnd(n, NONE, div);        
+    set_bnd(n, NONE, p);
 
     lin_solve(n, NONE, p, div, 1, 4);
     
@@ -157,14 +151,8 @@ static void project(unsigned int n, float *u, float *v, float *p, float *div)
         }
     }
     
-    #pragma omp parallel sections
-    {
-        #pragma omp section
-        set_bnd(n, VERTICAL, u);
-        
-        #pragma omp section
-        set_bnd(n, HORIZONTAL, v);
-    }        
+    set_bnd(n, VERTICAL, u);
+    set_bnd(n, HORIZONTAL, v);
 }
 
 void dens_step(unsigned int n, float *x, float *x0, float *u, float *v, float diff, float dt)
