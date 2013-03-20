@@ -170,37 +170,46 @@ static void draw_density ( void )
 
 static void react ( float * d, float * u, float * v )
 {
-	int i, j, size = (N+2)*(N+2);
+	int size = (N+2)*(N+2);
+	float max_velocity2 = 0.0f, shared_max_velocity2 = max_velocity2;
+	float max_density = 0.0f, shared_max_density = max_density;
 
-	float max_velocity2 = 0.0f;
-	float max_density = 0.0f;
-
-	max_velocity2 = max_density = 0.0f;
-	for ( i=0 ; i<size ; i++ ) {
-		if (max_velocity2 < u[i]*u[i] + v[i]*v[i]) {
-			max_velocity2 = u[i]*u[i] + v[i]*v[i];
-		}
-		if (max_density < d[i]) {
-			max_density = d[i];
-		}
-	}
-
-	for ( i=0 ; i<size ; i++ ) {
-		u[i] = v[i] = d[i] = 0.0f;
-	}
-
-	if (max_velocity2<0.0000005f) {
+    #pragma omp parallel default(shared) firstprivate(max_velocity2, max_density)
+	{
+	    #pragma omp for schedule(static)
+	    for ( unsigned int i = 0 ; i<size ; i++ ) {
+		    if (max_velocity2 < u[i]*u[i] + v[i]*v[i]) {
+			    max_velocity2 = u[i]*u[i] + v[i]*v[i];
+		    }
+		    if (max_density < d[i]) {
+			    max_density = d[i];
+		    }
+	        u[i] = v[i] = d[i] = 0.0f;
+	    }
+        
+        #pragma omp critical
+        {
+            if (shared_max_density < max_density) {
+			    shared_max_density = max_density;
+            }
+            if (shared_max_velocity2 < max_velocity2) {
+			    shared_max_velocity2 = max_velocity2;
+            }
+        }
+    }
+        
+	if (shared_max_velocity2<0.0000005f) {
 		u[IX(N/2,N/2)] = force * 10.0f;
 		v[IX(N/2,N/2)] = force * 10.0f;
 	}
-	if (max_density<1.0f) {
+	if (shared_max_density<1.0f) {
 		d[IX(N/2,N/2)] = source * 10.0f;
 	}
 
 	if ( !mouse_down[0] && !mouse_down[2] ) return;
 
-	i = (int)((       mx /(float)win_x)*N+1);
-	j = (int)(((win_y-my)/(float)win_y)*N+1);
+	int i = (int)((       mx /(float)win_x)*N+1);
+	int j = (int)(((win_y-my)/(float)win_y)*N+1);
 
 	if ( i<1 || i>N || j<1 || j>N ) return;
 
