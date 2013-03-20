@@ -56,8 +56,8 @@ static void lin_solve(unsigned int n, boundary b, float * x, const float * x0, f
         } //todos los threads se sincronizan
 
         #pragma omp task
-        set_bnd(n, b, x); //todos los threads se sincronizan
-        #pragma omp taskwait
+        set_bnd(n, b, x);
+        #pragma omp taskwait //todos los threads se sincronizan
     }
 }
 
