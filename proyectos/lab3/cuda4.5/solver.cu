@@ -39,30 +39,31 @@ static void add_source(uint n, float * x, const float * s, float dt)
 
 __global__ static void set_bnd_kernel(uint n, boundary b, float * x)
 {
-    // lanzo 4 n hilos 
     uint idx = blockIdx.x * blockDim.x + threadIdx.x;
     uint i = (idx % n) + 1, sel = idx / n;
     
     if (sel == 0) x[IX(0, i)]          = b == VERTICAL   ? -x[IX(1, i)] : x[IX(1, i)];
-    else if (sel == 3) x[IX(i, n + 1)] = b == HORIZONTAL ? -x[IX(i, n)] : x[IX(i, n)];
     else if (sel == 1) x[IX(n + 1, i)] = b == VERTICAL   ? -x[IX(n, i)] : x[IX(n, i)];
     else if (sel == 2) x[IX(i, 0)]     = b == HORIZONTAL ? -x[IX(i, 1)] : x[IX(i, 1)];
-
-    if (idx == 1)      x[IX(0, 0)]      = 0.5f * (x[IX(1, 0)]     + x[IX(0, 1)]);
-    else if (idx == n) x[IX(0, n + 1)]  = 0.5f * (x[IX(1, n + 1)] + x[IX(0, n)]);
-    else if (idx == 3 * n + 1) x[IX(n + 1, 0)]     = 0.5f * (x[IX(n, 0)]     + x[IX(n + 1, 1)]);
-    else if (idx == 4 * n)     x[IX(n + 1, n + 1)] = 0.5f * (x[IX(n, n + 1)] + x[IX(n + 1, n)]);
+    else if (sel == 3) x[IX(i, n + 1)] = b == HORIZONTAL ? -x[IX(i, n)] : x[IX(i, n)];
 }
 
 static void set_bnd(unsigned int n, boundary b, float * x)
 {
     // dimensiones para set_bnd_kernel
+    // lanzo 4 n hilos 
     dim3 block(BLOCK_WIDTH);
     dim3 grid(DIV_CEIL(n*4, block.x));
 
     set_bnd_kernel<<<grid, block>>>(n, b, x);
     CUT_CHECK_ERROR("Error en la actualizacion de los bordes: ");
     cutilSafeCall(cudaDeviceSynchronize()); // espero a que los kernels terminen
+
+    // esquinas
+    x[IX(0, 0)]      = 0.5f * (x[IX(1, 0)]     + x[IX(0, 1)]);
+    x[IX(0, n + 1)]  = 0.5f * (x[IX(1, n + 1)] + x[IX(0, n)]);
+    x[IX(n + 1, 0)]     = 0.5f * (x[IX(n, 0)]     + x[IX(n + 1, 1)]);
+    x[IX(n + 1, n + 1)] = 0.5f * (x[IX(n, n + 1)] + x[IX(n + 1, n)]);
 }
 
 template<Color color>
