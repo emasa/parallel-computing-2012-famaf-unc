@@ -176,7 +176,7 @@ static void react ( float * d, float * u, float * v )
 
     #pragma omp parallel default(shared) firstprivate(max_velocity2, max_density)
 	{
-	    #pragma omp for schedule(static)
+	    #pragma omp for schedule(static) nowait // no es necesario esperar
 	    for ( unsigned int i = 0 ; i<size ; i++ ) {
 		    if (max_velocity2 < u[i]*u[i] + v[i]*v[i]) {
 			    max_velocity2 = u[i]*u[i] + v[i]*v[i];
@@ -187,7 +187,7 @@ static void react ( float * d, float * u, float * v )
 	        u[i] = v[i] = d[i] = 0.0f;
 	    }
         
-        #pragma omp critical
+        #pragma omp critical // region critica, accedida por un hilo a la vez
         {
             if (shared_max_density < max_density) {
 			    shared_max_density = max_density;
