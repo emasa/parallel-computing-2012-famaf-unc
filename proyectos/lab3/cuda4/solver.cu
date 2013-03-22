@@ -37,42 +37,45 @@ static void add_source(uint n, float * x, const float * s, float dt)
     cutilSafeCall(cudaDeviceSynchronize()); // espero a que termine el kernel
 }
 
-__global__ static void set_bnd_kernel(uint n, boundary b, float * x)
+__global__ static void set_bnd_edges_kernel(uint n, boundary b, float * x)
 {
-    uint i = blockIdx.x * blockDim.x + threadIdx.x + 1;
+    // se esperan al menos 4 n hilos 
+    uint idx = blockIdx.x * blockDim.x + threadIdx.x;
+    uint i = (idx % n) + 1, sel = idx / n; // indice y selector
 
-    if (i <= n) {
-        x[IX(0, i)]     = b == VERTICAL ? -x[IX(1, i)] : x[IX(1, i)];
-        x[IX(n + 1, i)] = b == VERTICAL ? -x[IX(n, i)] : x[IX(n, i)];
-        x[IX(i, 0)]     = b == HORIZONTAL ? -x[IX(i, 1)] : x[IX(i, 1)];
-        x[IX(i, n + 1)] = b == HORIZONTAL ? -x[IX(i, n)] : x[IX(i, n)];
-    }
+    if (sel == 0) x[IX(0, i)]          = b == VERTICAL   ? -x[IX(1, i)] : x[IX(1, i)];
+    else if (sel == 1) x[IX(n + 1, i)] = b == VERTICAL   ? -x[IX(n, i)] : x[IX(n, i)];
+    else if (sel == 2) x[IX(i, 0)]     = b == HORIZONTAL ? -x[IX(i, 1)] : x[IX(i, 1)];
+    else if (sel == 3) x[IX(i, n + 1)] = b == HORIZONTAL ? -x[IX(i, n)] : x[IX(i, n)];
+}
 
-    if (i == 1) { 
-        x[IX(0, 0)] = 0.5f * (x[IX(1, 0)]     + x[IX(0, 1)]);
-    }
-    
-    if (i == n) {
-        x[IX(0, n + 1)]     = 0.5f * (x[IX(1, n + 1)] + x[IX(0, n)]);
-        x[IX(n + 1, 0)]     = 0.5f * (x[IX(n, 0)]     + x[IX(n + 1, 1)]);
+__global__ static void set_bnd_corners_kernel(uint n, boundary b, float * x)
+{
+    uint idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx == 0) { // un solo hilo actualiza las esquinas
+        x[IX(0, 0)]      = 0.5f * (x[IX(1, 0)]     + x[IX(0, 1)]);
+        x[IX(0, n + 1)]  = 0.5f * (x[IX(1, n + 1)] + x[IX(0, n)]);
+        x[IX(n + 1, 0)]  = 0.5f * (x[IX(n, 0)]     + x[IX(n + 1, 1)]);
         x[IX(n + 1, n + 1)] = 0.5f * (x[IX(n, n + 1)] + x[IX(n + 1, n)]);
     }
 }
 
+
 static void set_bnd(unsigned int n, boundary b, float * x)
 {
-    // dimensiones para set_bnd_kernel
     dim3 block(BLOCK_WIDTH);
-    dim3 grid(DIV_CEIL(n, block.x));
+    dim3 grid(DIV_CEIL(4*n, block.x));
 
-    set_bnd_kernel<<<grid, block>>>(n, b, x);
+    set_bnd_edges_kernel<<<grid, block>>>(n, b, x);
+    set_bnd_corners_kernel<<<dim3(1), block>>>(n, b, x);
+
     CUT_CHECK_ERROR("Error en la actualizacion de los bordes: ");
     cutilSafeCall(cudaDeviceSynchronize()); // espero a que los kernels terminen
 }
 
 template<Color color>
-__global__  static void lin_solve_update_cell(unsigned int n, float * x, const float * x0, float a, float c) {
-    
+__global__  static void lin_solve_update_cell(unsigned int n, float * x, const float * x0, float a, float c) 
+{    
     // centro sumando 1 a cada coordenada
     uint i = threadIdx.y + blockIdx.y * blockDim.y + 1;     
     uint j = threadIdx.x + blockIdx.x * blockDim.x + 1;
@@ -84,7 +87,7 @@ __global__  static void lin_solve_update_cell(unsigned int n, float * x, const f
 
 static void lin_solve(unsigned int n, boundary b, float * x, const float * x0, float a, float c)
 {    
-     // dimensiones para el kernel lin_solve_update_cell
+    // dimensiones para el kernel lin_solve_update_cell
     dim3 block(BLOCK_WIDTH, BLOCK_HEIGHT);
     dim3 grid(DIV_CEIL(n, block.x), DIV_CEIL(n, block.y));
     
@@ -172,8 +175,8 @@ __global__  static void project_update_div_and_p_cell(unsigned int n, float *u, 
     }
 }
 
-__global__  static void project_update_u_and_v_cell(unsigned int n, float *u, float *v, float *p, float *div) {
-    
+__global__  static void project_update_u_and_v_cell(unsigned int n, float *u, float *v, float *p, float *div) 
+{    
     // centro sumando 1 a cada coordenada
     uint i = threadIdx.y + blockIdx.y * blockDim.y + 1;     
     uint j = threadIdx.x + blockIdx.x * blockDim.x + 1;

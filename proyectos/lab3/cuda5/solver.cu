@@ -78,7 +78,7 @@ __global__  static void lin_solve_update_cell(unsigned int n, float * x, const f
     uint j = threadIdx.x + blockIdx.x * blockDim.x + 1;
     // todos los hilos del warp trabajan
     i = i * 2 - ((j + color) % 2);
-    if (i <= n && j <= n){
+    if (i <= n && j <= n) {
         x[IX(j, i)] = (x0[IX(j, i)] + a * (x[IX(j - 1, i)] + x[IX(j + 1, i)] + x[IX(j, i - 1)] + x[IX(j, i + 1)])) / c;
     }
 }
