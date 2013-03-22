@@ -60,7 +60,6 @@ __global__ static void set_bnd_corners_kernel(uint n, boundary b, float * x)
     }
 }
 
-
 static void set_bnd(unsigned int n, boundary b, float * x)
 {
     dim3 block(BLOCK_WIDTH);
