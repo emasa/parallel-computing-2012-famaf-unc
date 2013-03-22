@@ -8,7 +8,7 @@
 #define DIV_CEIL(n, m) ((n) + (m) -1) / (m)
 
 #define BLOCK_WIDTH 32
-#define BLOCK_HEIGHT 5
+#define BLOCK_HEIGHT 16
 
 typedef enum { NONE = 0, VERTICAL = 1, HORIZONTAL = 2 } boundary;
 typedef enum { RED = 0, BLACK = 1} Color;
@@ -65,115 +65,32 @@ static void set_bnd(unsigned int n, boundary b, float * x)
     cutilSafeCall(cudaDeviceSynchronize()); // espero a que los kernels terminen
 }
 
-__device__ static void _copy_x_to_shared(unsigned int n, const float * x, float shared_x[BLOCK_HEIGHT + 4][BLOCK_WIDTH + 4])
-{
-    uint i = threadIdx.y + blockIdx.y * blockDim.y + 1;
-    uint j = threadIdx.x + blockIdx.x * blockDim.x + 1;
+template<Color color>
+__global__  static void lin_solve_update_cell(unsigned int n, float * x, const float * x0, float a, float c) {
     
-    assert(i <= n && j <= n);
-    
-    int offset_x = blockIdx.x * blockDim.x;
-    int offset_y = blockIdx.y * blockDim.y;
-    int tmp_y = threadIdx.y;
-    int tmp_x = threadIdx.x;        
-    
-    if (tmp_x == 0) { // borde izquierdo
-        if (j > 1) {
-            shared_x[tmp_y + 2][0] = x[IX(offset_x - 2, offset_y + tmp_y)];
-        }
-        shared_x[tmp_y + 2][1] = x[IX(offset_x - 1, offset_y + tmp_y)];
-    }
-    if (tmp_x == BLOCK_WIDTH - 1) { // borde derecho
-        shared_x[tmp_y + 2][BLOCK_WIDTH] = x[IX(offset_x + BLOCK_WIDTH, offset_y + tmp_y)];
-        if (j < n) {
-            shared_x[tmp_y + 2][BLOCK_WIDTH + 1] = x[IX(offset_x + BLOCK_WIDTH + 1, offset_y + tmp_y)];
-        }
-    }
-    if (tmp_y == 0) { // borde superior
-        if (i > 1) {  
-            shared_x[0][tmp_x + 2] = x[IX(offset_x + tmp_x, offset_y - 2)];
-        }
-        shared_x[1][tmp_x + 2] = x[IX(offset_x + tmp_x, offset_y - 1)];
-    }    
-    if (tmp_y == BLOCK_HEIGHT - 1) { // borde inferior
-        shared_x[BLOCK_HEIGHT][tmp_x + 2] = x[IX(offset_x + tmp_x, offset_y + BLOCK_HEIGHT)];
-        if (i < n) {
-            shared_x[BLOCK_HEIGHT + 1][tmp_x + 2] = x[IX(offset_x + tmp_x, offset_y + BLOCK_HEIGHT + 1)];            
-        }
-    }
-    if (tmp_x == 0 && tmp_y == 0) { // esquinas (internas)
-        shared_x[1][1] = x[IX(offset_x-1, offset_y-1)];
-        shared_x[1][BLOCK_WIDTH + 2]  = x[IX(offset_x + BLOCK_WIDTH, offset_y - 1)];
-        shared_x[BLOCK_HEIGHT + 2][1] = x[IX(offset_x - 1, offset_y + BLOCK_HEIGHT)];
-        shared_x[BLOCK_HEIGHT + 2][BLOCK_WIDTH + 2] = x[IX(offset_x + BLOCK_WIDTH, offset_y + BLOCK_HEIGHT)];
-    }        
-    shared_x[tmp_y + 2][tmp_x + 2] = x[IX(j, i)]; // centro
-}
-
-
-__global__  static void lin_solve_update_board(unsigned int n, float * x, const float * x0, float a, float c) {
-
     // centro sumando 1 a cada coordenada
     uint i = threadIdx.y + blockIdx.y * blockDim.y + 1;     
-    uint j = threadIdx.x + blockIdx.x * blockDim.x + 1;    
+    uint j = threadIdx.x + blockIdx.x * blockDim.x + 1;
     
-    if (i <= n && j <= n) {        
-        __shared__ float shared_x[BLOCK_HEIGHT + 4][BLOCK_WIDTH  + 4];
-        
-        _copy_x_to_shared(n, x, shared_x);
-                        
-        __syncthreads(); // sincronizo el bloque
-
-        uint tmp_y = threadIdx.y + 2;
-        uint tmp_x = threadIdx.x + 2; 
-        
-        // celdas rojas del borde externo auxiliar 
-        if ((i + j) % 2 == RED && i > 1 && i < n && j > 1 && j < n) &&
-            (tmp_x == 2 || tmp_y == 2 || tmp_x == BLOCK_WIDTH + 1 || BLOCK_WIDTH + 1)) 
-        {
-            uint tmp2_x = tmp_x, tmp2_y = tmp_y, tmp_i = i, tmp_j = j;
-            if (tmp_x == 2) {
-                tmp2_x--;
-                tmp_j--;
-            } else if (tmp_x == BLOCK_WIDTH + 1){
-                tmp2_x++;
-                tmp_j++;            
-            }
-            if (tmp_y == 2) {
-                tmp2_y--;
-                tmp_i--;
-            } else if(tmp_x == BLOCK_HEIGHT + 1) {
-                tmp2_y++;
-                tmp_i++;
-            }
-            shared_x[tmp2_y][tmp2_x] = (x0[IX(tmp_j, tmp_i)] + a * (shared_x[tmp2_y][tmp2_x - 1] + shared_x[tmp2_y][tmp2_x + 1] + 
-                                                                    shared_x[tmp2_y - 1][tmp2_x] + shared_x[tmp2_y + 1][tmp2_x])) / c;
-        } 
-        
-        // celdas rojas
-        if ((i + j) % 2 == RED) {
-            shared_x[tmp_y][tmp_x] = (x0[IX(j, i)] + a * (shared_x[tmp_y][tmp_x - 1] + shared_x[tmp_y][tmp_x + 1] + shared_x[tmp_y - 1][tmp_x] + shared_x[tmp_y + 1][tmp_x])) / c;
-        }
-
-        __syncthreads(); // sincronizo el bloque
-        
-        if ((i + j) % 2 == BLACK) {
-            x[IX(j, i)] = (x0[IX(j, i)] + a * (shared_x[tmp_y][tmp_x - 1] + shared_x[tmp_y][tmp_x + 1] + shared_x[tmp_y - 1][tmp_x] + shared_x[tmp_y + 1][tmp_x])) / c;
-        }
+    if (i <= n && j <= n && (i+j) % 2 == color){
+        x[IX(j, i)] = (x0[IX(j, i)] + a * (x[IX(j - 1, i)] + x[IX(j + 1, i)] + x[IX(j, i - 1)] + x[IX(j, i + 1)])) / c;
     }
 }
 
 static void lin_solve(unsigned int n, boundary b, float * x, const float * x0, float a, float c)
 {    
-    // dimensiones para el kernel lin_solve_update_cell
+     // dimensiones para el kernel lin_solve_update_cell
     dim3 block(BLOCK_WIDTH, BLOCK_HEIGHT);
     dim3 grid(DIV_CEIL(n, block.x), DIV_CEIL(n, block.y));
     
     for (unsigned int k = 0; k < 20; k++) 
     {
-        lin_solve_board<<<grid, block>>>(n, x, x0, a, c);
+        // red
+        lin_solve_update_cell<RED> <<<grid, block>>>(n, x, x0, a, c);
+        // black
+        lin_solve_update_cell<BLACK> <<<grid, block>>>(n, x, x0, a, c);
 
-        CUT_CHECK_ERROR("Error en la actualizacion de la celdas en lin_solve: ");
+        CUT_CHECK_ERROR("Error en la actualizacion de la celdas: ");
         cutilSafeCall(cudaDeviceSynchronize()); // espero a que los kernels terminen
 
         // bordes
