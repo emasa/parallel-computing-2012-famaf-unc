@@ -11,5 +11,5 @@ set ylabel "%Eff"
 set title "%Eff vs N vs Procs -- $1"
 set logscale x 2
 set key left top
-plot for [i=2:8] "$1" using 1:((column(i)/column(2))/(i-1)) with linespoints title columnhead(i) linewidth 4
+plot for [i=2:9] "$1" using 1:(column(2)/(column(i)*(i-1))) with linespoints title columnhead(i) linewidth 4
 EOF

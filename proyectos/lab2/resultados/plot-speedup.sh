@@ -11,5 +11,5 @@ set ylabel "speedup"
 set title "speedup vs N vs Procs -- $1"
 set logscale x 2
 set key left top
-plot for [i=2:8] "$1" using 1:(column(2)/column(i)) with linespoints title columnhead(i) linewidth 4
+plot for [i=2:9] "$1" using 1:(column(2)/column(i)) with linespoints title columnhead(i) linewidth 4
 EOF
