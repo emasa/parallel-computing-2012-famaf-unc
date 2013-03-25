@@ -7,8 +7,8 @@
 #define SWAP(x0,x) {float * tmp=x0;x0=x;x=tmp;}
 #define DIV_CEIL(n, m) ((n) + (m) -1) / (m)
 
-#define BLOCK_WIDTH 32
-#define BLOCK_HEIGHT 16
+/* block sizes */
+extern int BLOCK_WIDTH, BLOCK_HEIGHT;
 
 typedef enum { NONE = 0, VERTICAL = 1, HORIZONTAL = 2 } boundary;
 typedef enum { RED = 0, BLACK = 1} Color;
@@ -73,13 +73,13 @@ static void set_bnd(unsigned int n, boundary b, float * x)
 }
 
 template<Color color>
-__global__  static void lin_solve_update_cell(unsigned int n, float * x, const float * x0, float a, float c) 
-{    
+__global__  static void lin_solve_update_cell(unsigned int n, float * x, const float * x0, float a, float c) {
+    
     // centro sumando 1 a cada coordenada
     uint i = threadIdx.y + blockIdx.y * blockDim.y + 1;     
     uint j = threadIdx.x + blockIdx.x * blockDim.x + 1;
-    
-    if (i <= n && j <= n && (i+j) % 2 == color){
+    // solo los hilos del color a actualizar trabajan
+    if (i <= n && j <= n && (i+j) % 2 == color) {
         x[IX(j, i)] = (x0[IX(j, i)] + a * (x[IX(j - 1, i)] + x[IX(j + 1, i)] + x[IX(j, i - 1)] + x[IX(j, i + 1)])) / c;
     }
 }
@@ -87,6 +87,7 @@ __global__  static void lin_solve_update_cell(unsigned int n, float * x, const f
 static void lin_solve(unsigned int n, boundary b, float * x, const float * x0, float a, float c)
 {    
     // dimensiones para el kernel lin_solve_update_cell
+    // utilizo un hilo por celda     
     dim3 block(BLOCK_WIDTH, BLOCK_HEIGHT);
     dim3 grid(DIV_CEIL(n, block.x), DIV_CEIL(n, block.y));
     
@@ -97,7 +98,7 @@ static void lin_solve(unsigned int n, boundary b, float * x, const float * x0, f
         // black
         lin_solve_update_cell<BLACK> <<<grid, block>>>(n, x, x0, a, c);
 
-        CUT_CHECK_ERROR("Error en la actualizacion de la celdas: ");
+        CUT_CHECK_ERROR("Error en la actualizacion de la celdas en lin_solve: ");
         cutilSafeCall(cudaDeviceSynchronize()); // espero a que los kernels terminen
 
         // bordes
@@ -174,8 +175,8 @@ __global__  static void project_update_div_and_p_cell(unsigned int n, float *u, 
     }
 }
 
-__global__  static void project_update_u_and_v_cell(unsigned int n, float *u, float *v, float *p, float *div) 
-{    
+__global__  static void project_update_u_and_v_cell(unsigned int n, float *u, float *v, float *p, float *div) {
+    
     // centro sumando 1 a cada coordenada
     uint i = threadIdx.y + blockIdx.y * blockDim.y + 1;     
     uint j = threadIdx.x + blockIdx.x * blockDim.x + 1;

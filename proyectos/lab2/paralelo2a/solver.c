@@ -12,7 +12,7 @@ typedef enum { NONE = 0, VERTICAL = 1, HORIZONTAL = 2 } boundary;
 static void add_source(unsigned int n, float * x, const float * s, float dt)
 {
     unsigned int size = (n + 2) * (n + 2);
-    #pragma omp parallel for default(shared) schedule(static)
+    #pragma omp parallel for schedule(static) default(shared)
     for (unsigned int i = 0; i < size; i++) {
         x[i] += dt * s[i];
     }
@@ -20,7 +20,7 @@ static void add_source(unsigned int n, float * x, const float * s, float dt)
 
 static void set_bnd(unsigned int n, boundary b, float * x)
 {
-    #pragma omp parallel for schedule(static)
+    #pragma omp parallel for schedule(static) default(shared)
     for (unsigned int i = 1; i <= n; i++) {
         x[IX(0, i)]     = b == VERTICAL ? -x[IX(1, i)] : x[IX(1, i)];
         x[IX(n + 1, i)] = b == VERTICAL ? -x[IX(n, i)] : x[IX(n, i)];
@@ -108,7 +108,7 @@ static void advect(unsigned int n, boundary b, float * d, const float * d0, cons
 
 static void project(unsigned int n, float *u, float *v, float *p, float *div)
 {   
-    #pragma omp parallel for default(shared)
+    #pragma omp parallel for schedule(static) default(shared)
     for (unsigned int j = 1; j <= n; j++) {
         for (unsigned int i = 1; i <= n; i++) {
             div[IX(i, j)] = -0.5f * (u[IX(i + 1, j)] - u[IX(i - 1, j)] +
@@ -122,7 +122,7 @@ static void project(unsigned int n, float *u, float *v, float *p, float *div)
 
     lin_solve(n, NONE, p, div, 1, 4);
     
-    #pragma omp parallel for default(shared)
+    #pragma omp parallel for schedule(static) default(shared)
     for (unsigned int j = 1; j <= n; j++) {
         for (unsigned int i = 1; i <= n; i++) {
             u[IX(i, j)] -= 0.5f * n * (p[IX(i + 1, j)] - p[IX(i - 1, j)]);

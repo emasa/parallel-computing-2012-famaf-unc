@@ -16,6 +16,9 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
+
+#include <thrust/device_vector.h> // API para la reduccion del maximo
 
 #include <cuda.h>           // API de cuda
 #include <cutil_inline.h>   // Funciones para chequeo de errores
@@ -25,11 +28,10 @@
 /* macros */
 
 #define IX(i,j) ((i)+(N+2)*(j))
+#define DIV_CEIL(n, m) ((n) + (m) -1) / (m)
 
-/*
-#define BLOCK_WIDTH 32
-#define BLOCK_HEIGHT 16
-*/
+#define OPTIMAL_BLOCK_WIDTH 32
+#define OPTIMAL_BLOCK_HEIGHT 5
 
 /* external definitions (from solver.c) */
 
@@ -45,8 +47,11 @@ static float force, source;
 static float * u, * v, * u_prev, * v_prev;
 static float * dens, * dens_prev;
 
-// arreglos auxiliares para almacenar memoria en host para utilizar en react
-static float * host_u_prev, * host_v_prev, * host_dens_prev;
+/* global helper variable */
+
+static float * vel2; // calculo de u*u + v*v
+
+int BLOCK_WIDTH, BLOCK_HEIGHT; // deben ser importado desde el solver
 
 /*
   ----------------------------------------------------------------------
@@ -64,11 +69,8 @@ static void free_data ( void )
 	if ( v_prev ) cutilSafeCall(cudaFree( v_prev ));
 	if ( dens ) cutilSafeCall(cudaFree( dens ));
 	if ( dens_prev ) cutilSafeCall(cudaFree( dens_prev ));
-    
-    // libero memoria en el host
-	if ( host_u_prev ) free( host_u_prev );
-	if ( host_v_prev ) free( host_v_prev );
-	if ( host_dens_prev ) free( host_dens_prev );
+	
+	if ( vel2 ) cutilSafeCall(cudaFree( vel2 ));
 }
 
 static void clear_data ( void )
@@ -82,6 +84,8 @@ static void clear_data ( void )
     cutilSafeCall(cudaMemset(v_prev, 0, size_bytes));
     cutilSafeCall(cudaMemset(dens, 0, size_bytes));
     cutilSafeCall(cudaMemset(dens_prev, 0, size_bytes));
+    
+    cutilSafeCall(cudaMemset(vel2, 0, size_bytes));
 }
 
 static int allocate_data ( void )
@@ -95,135 +99,68 @@ static int allocate_data ( void )
     cutilSafeCall(cudaMalloc(&v_prev, size_bytes));
     cutilSafeCall(cudaMalloc(&dens, size_bytes));
     cutilSafeCall(cudaMalloc(&dens_prev, size_bytes));
-	
-	//reservo memoria en el host
-	host_u_prev		= (float *) malloc ( size_bytes );
-	host_v_prev		= (float *) malloc ( size_bytes );
-    host_dens_prev  = (float *) malloc ( size_bytes );
-    
-    if ( !host_u_prev || !host_v_prev || !host_dens_prev ) {
-		fprintf ( stderr, "cannot allocate data\n" );
-		return ( 0 );
-	}
+
+    cutilSafeCall(cudaMalloc(&vel2, size_bytes));
 
 	return ( 1 );
 }
 
-// reduccion del maximo de un array utilizando un arbol y memoria compartida
-
-/*
-__global__ void max_tree(float * array, float * result) {
-
-    __shared__ float tmp[BLOCK_WIDTH * BLOCK_HEIGHT];
+__global__ static void velocity2(unsigned int n, const float* u, const float* v, float* vel2){
 
     uint x = blockIdx.x * blockDim.x + threadIdx.x;
     uint y = blockIdx.y * blockDim.y + threadIdx.y;
-    uint idx = x + y * N;
-    uint tid = threadIdx.y * blockDim.x + threadIdx.x;
-
-    if (x <= N && y <= N) {
-        tmp[tid] = array[idx];
-    } else {
-        tmp[tid] = 0;
+    uint idx = y * n + x;
+    if (x < n && y < n){
+        vel2[idx] = u[idx] * u[idx] + v[idx] * v[idx];
     }
+}
 
-    __syncthreads();
+__global__ static void init_u_v_d(unsigned int n, float * d, float * u, float * v, float max_velocity2, float max_density, float force, float source) {
+
+    uint x = blockIdx.x * blockDim.x + threadIdx.x;
     
-    for (uint distance = BLOCK_WIDTH * BLOCK_HEIGHT / 2; distance >= 1; distance = distance / 2) {
-        if ( tid < distance ) {
-            tmp[tid] = max(tmp[tid], tmp[tid + distance]);
-        }
-        if (distance > 16) { //se evita sinchronizacion en un warp (<= 32 elementos)
-            __syncthreads();
-        }
-    }
+    if (x == 0){
+	    uint idx = (n / 2) * (n + 2) +  n / 2;
+	    if (max_velocity2<0.0000005f) {
+		    u[idx] = force * 10.0f;
 
-    if (tid == 0) {
-        atomicMax(result, tmp[0]);
+		    v[idx] = force * 10.0f;
+	    }
+	    if (max_density<1.0f) {
+		    d[idx] = source * 10.0f;
+	    }
     }
 }
 
 static void react ( float * d, float * u, float * v )
 {
-	int size_bytes = (N+2) * (N+2) * sizeof(float);
-	
-	float max_velocity2;
-	float max_density;
+	int size_bytes = (N+2) * (N+2) * sizeof(float);	    
+    dim3 block(BLOCK_WIDTH, BLOCK_HEIGHT);
+    dim3 grid(DIV_CEIL(N+2, block.x), DIV_CEIL(N+2, block.y));
 
-    cutilSafeCall(cudaMalloc(&max_velocity2, sizeof(float)));
-    cutilSafeCall(cudaMemset(&max_velocity2, 0, sizeof(float)));
-    max_tree(u_pow2_plus_v_pow2, &max_velocity2);
-    
-    CUT_CHECK_ERROR("Error al reducir maxima velocidad :");
-    cutilSafeCall(cudaDeviceSynchronize()); // espero a que termine el kernel    
-    
-    cutilSafeCall(cudaMalloc(&max_density, sizeof(float)));
-    cutilSafeCall(cudaMemset(&max_density, 0, sizeof(float)));
-    max_tree(d, &max_density);
+    // calculo velocidad    
+    velocity2<<<grid, block>>>(N+2, u, v, vel2);
+    CUT_CHECK_ERROR("Error al calcular u*u + v*v :");
+    cutilSafeCall(cudaDeviceSynchronize()); // espero a que termine el kernel   
 
-    CUT_CHECK_ERROR("Error al reducir maxima densidad :");
-    cutilSafeCall(cudaDeviceSynchronize()); // espero a que termine el kernel    
+    // calculo maxima velocidad
+    thrust::device_ptr<float> thrust_vel2(vel2);
+    float max_velocity2 = *thrust::max_element(thrust_vel2, thrust_vel2 + (N+2)*(N+2));
+        
+    // calculo maxima densidad
+    thrust::device_ptr<float> thrust_d(d);
+    float max_density = *thrust::max_element(thrust_d, thrust_d + (N+2)*(N+2));
 
+    // seteo u, v, d a 0
     cutilSafeCall(cudaMemset(u, 0, size_bytes));
     cutilSafeCall(cudaMemset(v, 0, size_bytes));
     cutilSafeCall(cudaMemset(d, 0, size_bytes));
-        
-	for ( i=0 ; i<size ; i++ ) {
-		if (max_velocity2 < u[i]*u[i] + v[i]*v[i]) {
-			max_velocity2 = u[i]*u[i] + v[i]*v[i];
-		}
-		if (max_density < d[i]) {
-			max_density = d[i];
-		}
-	}
-
-	for ( i=0 ; i<size ; i++ ) {
-		u[i] = v[i] = d[i] = 0.0f;
-	}
-
-	if (max_velocity2<0.0000005f) {
-		u[IX(N/2,N/2)] = force * 10.0f;
-		v[IX(N/2,N/2)] = force * 10.0f;
-	}
-	if (max_density<1.0f) {
-		d[IX(N/2,N/2)] = source * 10.0f;
-	}
-
-	return;
+    
+    // inicializo u, v, d
+    init_u_v_d<<<dim3(1), dim3(BLOCK_WIDTH)>>>(N, d, u, v, max_velocity2, max_density, force, source);
+    CUT_CHECK_ERROR("Error al inicializar u, v, d :");
+    cutilSafeCall(cudaDeviceSynchronize()); // espero a que termine el kernel 
 }
-*/
-static void react ( float * d, float * u, float * v )
-{
-	int size = (N+2) * (N+2);
-	
-	float max_velocity2 = 0.0f;
-	float max_density   = 0.0f;
-
-	for ( int i=0 ; i<size ; i++ ) {
-		if (max_velocity2 < u[i]*u[i] + v[i]*v[i]) {
-			max_velocity2 = u[i]*u[i] + v[i]*v[i];
-		}
-
-		if (max_density < d[i]) {
-			max_density = d[i];
-		}
-	}
-
-	for ( int i=0 ; i<size ; i++ ) {
-		u[i] = v[i] = d[i] = 0.0f;
-	}
-
-	if (max_velocity2<0.0000005f) {
-		u[IX(N/2,N/2)] = force * 10.0f;
-		v[IX(N/2,N/2)] = force * 10.0f;
-	}
-	if (max_density<1.0f) {
-		d[IX(N/2,N/2)] = source * 10.0f;
-	}
-
-	return;
-}
-
 
 static void one_step ( void )
 {
@@ -234,22 +171,9 @@ static void one_step ( void )
 	static double vel_ns_p_cell = 0.0;
 	static double dens_ns_p_cell = 0.0;
 
-	int size_bytes = (N+2) * (N+2) * sizeof(float);
-	
-	// copio memoria auxiliar del device al host
-	cutilSafeCall(cudaMemcpy(host_u_prev, u_prev, size_bytes, cudaMemcpyDefault));
-	cutilSafeCall(cudaMemcpy(host_v_prev, v_prev, size_bytes, cudaMemcpyDefault));
-	cutilSafeCall(cudaMemcpy(host_dens_prev, dens_prev, size_bytes, cudaMemcpyDefault));
-    
-    // no cuento lo que tarda mover la memoria por que voy a implementar el react en gpu 
 	start_t = wtime();
-	react ( host_dens_prev, host_u_prev, host_v_prev );
+	react ( dens_prev, u_prev, v_prev );
 	react_ns_p_cell += 1.0e9 * (wtime()-start_t)/(N*N);
-	
-	// copio memoria auxiliar del host al device
-	cutilSafeCall(cudaMemcpy(u_prev, host_u_prev, size_bytes, cudaMemcpyDefault));
-	cutilSafeCall(cudaMemcpy(v_prev, host_v_prev, size_bytes, cudaMemcpyDefault));
-	cutilSafeCall(cudaMemcpy(dens_prev, host_dens_prev, size_bytes, cudaMemcpyDefault));
 
 	start_t = wtime();
 	vel_step ( N, u, v, u_prev, v_prev, visc, dt );
@@ -282,9 +206,7 @@ static void one_step ( void )
 
 int main ( int argc, char ** argv )
 {
-	int i = 0;
-
-	if ( argc != 1 && argc != 2 && argc != 6 ) {
+	if ( argc != 1 && argc != 4 && argc != 6 ) {
 		fprintf ( stderr, "usage : %s N dt diff visc force source\n", argv[0] );
 		fprintf ( stderr, "where:\n" );\
 		fprintf ( stderr, "\t N      : grid resolution\n" );
@@ -305,7 +227,9 @@ int main ( int argc, char ** argv )
 		source = 100.0f;
 		fprintf ( stderr, "Using defaults : N=%d dt=%g diff=%g visc=%g force = %g source=%g\n",
 			N, dt, diff, visc, force, source );
-	} else if (argc == 2) {
+	    BLOCK_WIDTH = OPTIMAL_BLOCK_WIDTH;
+	    BLOCK_HEIGHT = OPTIMAL_BLOCK_HEIGHT;
+	} else if (argc == 4) {
 	    N = atoi( argv[1] );
 	    dt = 0.1f;
 		diff = 0.0f;
@@ -314,6 +238,8 @@ int main ( int argc, char ** argv )
 		source = 100.0f;
 		fprintf ( stderr, "Using defaults : N=%d dt=%g diff=%g visc=%g force = %g source=%g\n",
 			N, dt, diff, visc, force, source );		
+	    BLOCK_WIDTH = atoi( argv [2] );
+	    BLOCK_HEIGHT = atoi( argv [3] );
 	} else {
 		N = atoi(argv[1]);
 		dt = atof(argv[2]);
@@ -321,11 +247,15 @@ int main ( int argc, char ** argv )
 		visc = atof(argv[4]);
 		force = atof(argv[5]);
 		source = atof(argv[6]);
+	    BLOCK_WIDTH = OPTIMAL_BLOCK_WIDTH;
+	    BLOCK_HEIGHT = OPTIMAL_BLOCK_HEIGHT;
 	}
 
+	assert (N > 0 && BLOCK_WIDTH > 0 && BLOCK_HEIGHT > 0);
+	
 	if ( !allocate_data () ) exit ( 1 );
 	clear_data ();
-	for (i=0; i<2048; i++)
+	for (int i=0; i<512; i++)
 		one_step ();
 	free_data ();
 
