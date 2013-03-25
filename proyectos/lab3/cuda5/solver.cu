@@ -7,8 +7,8 @@
 #define SWAP(x0,x) {float * tmp=x0;x0=x;x=tmp;}
 #define DIV_CEIL(n, m) ((n) + (m) -1) / (m)
 
-#define BLOCK_WIDTH 32
-#define BLOCK_HEIGHT 5
+/* block sizes */
+extern int BLOCK_WIDTH, BLOCK_HEIGHT;
 
 typedef enum { NONE = 0, VERTICAL = 1, HORIZONTAL = 2 } boundary;
 typedef enum { RED = 0, BLACK = 1} Color;

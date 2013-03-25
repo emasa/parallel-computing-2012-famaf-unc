@@ -16,6 +16,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 
 #include <thrust/device_vector.h> // API para la reduccion del maximo
 
@@ -29,8 +30,8 @@
 #define IX(i,j) ((i)+(N+2)*(j))
 #define DIV_CEIL(n, m) ((n) + (m) -1) / (m)
 
-#define BLOCK_WIDTH 32
-#define BLOCK_HEIGHT 5
+#define OPTIMAL_BLOCK_WIDTH 32
+#define OPTIMAL_BLOCK_HEIGHT 5
 
 /* external definitions (from solver.c) */
 
@@ -46,8 +47,11 @@ static float force, source;
 static float * u, * v, * u_prev, * v_prev;
 static float * dens, * dens_prev;
 
-// memoria auxiliar para almacenar en la placa
-static float * vel2;
+/* global helper variable */
+
+static float * vel2; // calculo de u*u + v*v
+
+int BLOCK_WIDTH, BLOCK_HEIGHT; // deben ser importado desde el solver
 
 /*
   ----------------------------------------------------------------------
@@ -202,9 +206,7 @@ static void one_step ( void )
 
 int main ( int argc, char ** argv )
 {
-	int i = 0;
-
-	if ( argc != 1 && argc != 2 && argc != 6 ) {
+	if ( argc != 1 && argc != 4 && argc != 6 ) {
 		fprintf ( stderr, "usage : %s N dt diff visc force source\n", argv[0] );
 		fprintf ( stderr, "where:\n" );\
 		fprintf ( stderr, "\t N      : grid resolution\n" );
@@ -225,7 +227,9 @@ int main ( int argc, char ** argv )
 		source = 100.0f;
 		fprintf ( stderr, "Using defaults : N=%d dt=%g diff=%g visc=%g force = %g source=%g\n",
 			N, dt, diff, visc, force, source );
-	} else if (argc == 2) {
+	    BLOCK_WIDTH = OPTIMAL_BLOCK_WIDTH;
+	    BLOCK_HEIGHT = OPTIMAL_BLOCK_HEIGHT;
+	} else if (argc == 4) {
 	    N = atoi( argv[1] );
 	    dt = 0.1f;
 		diff = 0.0f;
@@ -234,6 +238,8 @@ int main ( int argc, char ** argv )
 		source = 100.0f;
 		fprintf ( stderr, "Using defaults : N=%d dt=%g diff=%g visc=%g force = %g source=%g\n",
 			N, dt, diff, visc, force, source );		
+	    BLOCK_WIDTH = atoi( argv [2] );
+	    BLOCK_HEIGHT = atoi( argv [3] );
 	} else {
 		N = atoi(argv[1]);
 		dt = atof(argv[2]);
@@ -241,11 +247,15 @@ int main ( int argc, char ** argv )
 		visc = atof(argv[4]);
 		force = atof(argv[5]);
 		source = atof(argv[6]);
+	    BLOCK_WIDTH = OPTIMAL_BLOCK_WIDTH;
+	    BLOCK_HEIGHT = OPTIMAL_BLOCK_HEIGHT;
 	}
 
+	assert (N > 0 && BLOCK_WIDTH > 0 && BLOCK_HEIGHT > 0);
+	
 	if ( !allocate_data () ) exit ( 1 );
 	clear_data ();
-	for (i=0; i<2048; i++)
+	for (int i=0; i<512; i++)
 		one_step ();
 	free_data ();
 
