@@ -305,7 +305,7 @@ static void react ( float * d, float * u, float * v )
                                                mx, my, omx, omy, win_x, win_y);
     CUT_CHECK_ERROR("Error al inicializar u, v, d :");
     cutilSafeCall(cudaDeviceSynchronize()); // espero a que termine el kernel
-    void update_omx_omy();
+    update_omx_omy();
 }
 
 /*

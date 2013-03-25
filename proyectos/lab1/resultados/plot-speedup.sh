@@ -8,7 +8,9 @@ set terminal postscript eps color enhanced
 set output "serial-speedup.eps"
 set xlabel "N"
 set ylabel "speedup"
-set title "speedup vs N vs version"
+set title "speedup(contrastada con original) vs N vs version"
 set key left top
-plot for [i=1:3] "$1" using 1:(column(2*i+1)/column(2*i)) with linespoints title columnhead(2*i) linewidth 4
+plot for [i=1:3] "$1" using 1:(column(2*i+1)/column(2*i)) with linespoints title columnhead(2*i) linewidth 4, \
+     "$1" using 1:(column(5)/column(8)) with linespoints title columnhead(8) linewidth 4, \
+     "$1" using 1:(column(7)/column(9)) with linespoints title columnhead(9) linewidth 4
 EOF
